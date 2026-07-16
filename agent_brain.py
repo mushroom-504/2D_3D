@@ -3,8 +3,9 @@ from three_view_agent import analyze_three_view_request, build_blender_intent, s
 
 BACKEND_AUTO = "Auto"
 BACKEND_TRIPOSR = "TripoSR"
+BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
+BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
-BACKEND_LOCAL_CHARACTER = "Local Character"
 
 VIEW_ORDER = ["front", "back", "left", "right", "top", "bottom"]
 
@@ -64,6 +65,32 @@ REAL_MULTIVIEW_KEYWORDS = [
     "multi-view reconstruction",
 ]
 
+TRIPOSR_ENHANCED_KEYWORDS = [
+    "TripoSR Enhanced",
+    "triposr enhanced",
+    "TripoSR精度",
+    "TripoSR 精度",
+    "不要扁平",
+    "加厚",
+    "厚度修正",
+    "圆润",
+]
+
+TRIPOSR_FUSION_KEYWORDS = [
+    "TripoSR Fusion",
+    "triposr fusion",
+    "融合",
+    "多模型融合",
+    "多视角融合",
+    "分别生成",
+    "分别参考",
+    "正面背面融合",
+    "正面侧面融合",
+    "front.obj",
+    "back.obj",
+    "side.obj",
+]
+
 
 def analyze_request(intent, image_paths_for_agent):
     return analyze_three_view_request(intent, image_paths_for_agent)
@@ -96,10 +123,18 @@ def create_modeling_plan(intent, image_paths_for_agent, analysis=None, requested
     if requested_backend and requested_backend != BACKEND_AUTO:
         backend = requested_backend
         reasons.append(f"User selected backend: {requested_backend}.")
-    elif looks_stylized:
-        backend = BACKEND_LOCAL_CHARACTER
+    elif _contains_any(intent, TRIPOSR_FUSION_KEYWORDS):
+        backend = BACKEND_TRIPOSR_FUSION
+        reasons.append("The request asks to run TripoSR on multiple views and fuse the meshes in Blender.")
+    elif len(reference_views) >= 1 and looks_stylized:
+        backend = BACKEND_TRIPOSR_FUSION
         reasons.append(
-            "Stylized/anime/character requests are routed to the free local Blender character builder."
+            "Stylized/anime/character references are available, so the agent recommends TripoSR Fusion to use front plus reference meshes."
+        )
+    elif looks_stylized:
+        backend = BACKEND_TRIPOSR_FUSION if len(reference_views) >= 1 else BACKEND_TRIPOSR
+        reasons.append(
+            "Stylized/anime/character requests use TripoSR Fusion when references exist, otherwise TripoSR."
         )
     elif len(reference_views) >= 1 and explicitly_real_multiview:
         backend = BACKEND_EXTERNAL_MULTIVIEW

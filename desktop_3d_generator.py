@@ -11,21 +11,23 @@ from auto_repair import MAX_REPAIR_ATTEMPTS, analyze_error_message, build_repair
 from backend_manager import (
     BACKEND_AUTO,
     BACKEND_EXTERNAL_MULTIVIEW,
-    BACKEND_LOCAL_CHARACTER,
     BACKEND_TRIPOSR,
+    BACKEND_TRIPOSR_FUSION,
     WORK_ROOT,
     copy_reference_images,
     run_external_multiview_backend,
     run_triposr_backend,
+    run_triposr_fusion_backend,
 )
-from blender_executor import run_blender_with_repair
-from character_model_builder import looks_like_stylized_character_image, run_local_character_backend
+from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
+from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
 from project_history import append_history, write_error_report
 
 
 DESKTOP = Path.home() / "Desktop"
 VIEW_KEYS = ["back", "top", "bottom", "left", "right"]
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
 LANG = "zh"
 current_result_dir = None
@@ -33,6 +35,7 @@ current_blend = None
 current_obj = None
 history = []
 is_running = False
+last_image_dir = DESKTOP
 
 TEXT = {
     "zh": {
@@ -203,17 +206,18 @@ def run_backend_with_auto_repair(selected_backend, image_paths_for_agent, result
     for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
         try:
             log(f"Backend attempt {attempt}/{MAX_REPAIR_ATTEMPTS}: {current_backend}")
-            if current_backend == BACKEND_LOCAL_CHARACTER:
-                return run_local_character_backend(
-                    image_paths_for_agent.get("front") or safe_input,
-                    result_dir,
-                    intent=intent,
-                    log_callback=log,
-                ), current_backend
-
             if current_backend == BACKEND_EXTERNAL_MULTIVIEW:
                 log("External Multi-View may take several minutes on CPU. The window will stay responsive while it runs.")
                 return run_external_multiview_backend(image_paths_for_agent, result_dir), current_backend
+
+            if current_backend == BACKEND_TRIPOSR_FUSION:
+                resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
+                log(f"TripoSR Fusion mc-resolution: {resolution}")
+                return run_triposr_fusion_backend(
+                    image_paths_for_agent,
+                    result_dir,
+                    mc_resolution=resolution,
+                ), BACKEND_TRIPOSR_FUSION
 
             resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
             log(f"TripoSR mc-resolution: {resolution}")
@@ -315,16 +319,6 @@ def generate_3d(image_path, intent, ref_map=None):
     plan = create_modeling_plan(intent, image_paths_for_agent, analysis, requested_backend)
     analysis["agent_plan"] = plan
     selected_backend = plan["backend"]
-    if (
-        requested_backend == BACKEND_AUTO
-        and selected_backend == BACKEND_TRIPOSR
-        and looks_like_stylized_character_image(final_input, intent)
-    ):
-        selected_backend = BACKEND_LOCAL_CHARACTER
-        plan["backend"] = BACKEND_LOCAL_CHARACTER
-        plan.setdefault("reasons", []).append(
-            "The front image looks like a stylized character, so Auto switched to the free local Blender character builder."
-        )
     analysis_path = save_agent_analysis(result_dir, analysis)
     log(f"agent_analysis.json: {analysis_path}")
     log(f"Agent selected backend: {selected_backend}")
@@ -348,10 +342,19 @@ def generate_3d(image_path, intent, ref_map=None):
 
     final_blend = result_dir / "result.blend"
     blender_intent = build_modeling_intent(intent or tr("default_request"), analysis, copied_refs)
-    if selected_backend == BACKEND_LOCAL_CHARACTER:
-        final_obj = result_dir / obj_path.name
-        user_code = "Local Character backend generated the Blender scene directly."
-        set_progress(85, "Step 3: Checking local character model")
+    if selected_backend == BACKEND_TRIPOSR_FUSION:
+        final_obj = result_dir / "mesh.obj"
+        set_progress(75, "Step 3: TripoSR Fusion mesh alignment and voxel remesh")
+        user_code = run_blender_triposr_fusion(
+            obj_path,
+            final_blend,
+            image_paths_for_agent,
+            intent=intent or tr("default_request"),
+            log_callback=log,
+        )
+        fused_obj = result_dir / "fused_mesh.obj"
+        if fused_obj.exists():
+            shutil.copy2(fused_obj, final_obj)
         check = check_generation_outputs(result_dir)
     else:
         final_obj = result_dir / f"mesh{obj_path.suffix.lower()}"
@@ -363,6 +366,21 @@ def generate_3d(image_path, intent, ref_map=None):
         log("Model check warnings after auto-repair:")
         for problem in check.get("problems", []):
             log(f"- {problem}")
+
+    refinement_report, refinement_tools = write_refinement_report(
+        result_dir,
+        {
+            "blend": final_blend,
+            "obj": final_obj,
+            "glb": result_dir / "model.glb",
+            "fbx": result_dir / "model.fbx",
+            "stl": result_dir / "model.stl",
+        },
+    )
+    log(f"Free refinement tools report: {refinement_report}")
+    for tool_name, info in refinement_tools.items():
+        status = "installed" if info.get("installed") else "not installed"
+        log(f"- {tool_name}: {status}")
 
     (result_dir / "agent_history.txt").write_text(
         "Initial request and plan:\n"
@@ -450,9 +468,36 @@ def modify_current_model(intent):
     show_info(tr("done"), f"{tr('modified_saved')}\n{next_blend}")
 
 
+def get_quick_image_dirs():
+    candidates = [
+        DESKTOP,
+        Path.home() / "Pictures",
+        Path.home() / "Videos" / "Captures",
+        Path.home() / "Downloads",
+    ]
+    return [path for path in candidates if path.exists()]
+
+
+def list_images(folder):
+    try:
+        return [
+            path
+            for path in sorted(Path(folder).iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+            if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+        ]
+    except Exception:
+        return []
+
+
 def choose_image_for_var(target_var):
+    global last_image_dir
+    initial_dir = Path(target_var.get()).parent if target_var.get() else last_image_dir
+    if not initial_dir.exists():
+        initial_dir = DESKTOP
+
     file_path = filedialog.askopenfilename(
         title=tr("choose_title"),
+        initialdir=str(initial_dir),
         filetypes=[
             (tr("image_files"), "*.png;*.jpg;*.jpeg;*.webp;*.bmp"),
             (tr("all_files"), "*.*"),
@@ -460,6 +505,154 @@ def choose_image_for_var(target_var):
     )
     if file_path:
         target_var.set(file_path)
+        last_image_dir = Path(file_path).parent
+
+
+def open_thumbnail_picker(target_var):
+    global last_image_dir
+
+    start_dir = Path(target_var.get()).parent if target_var.get() else last_image_dir
+    if not start_dir.exists():
+        start_dir = DESKTOP
+
+    picker = tk.Toplevel(root)
+    picker.title(tr("choose_title"))
+    picker.geometry("980x680")
+    picker.transient(root)
+    picker.grab_set()
+
+    current_dir_var = tk.StringVar(value=str(start_dir))
+    selected_path_var = tk.StringVar(value="")
+    thumbnail_refs = []
+
+    top = tk.Frame(picker)
+    top.pack(fill="x", padx=12, pady=10)
+
+    tk.Label(top, text="文件夹").pack(side="left")
+    dir_entry = tk.Entry(top, textvariable=current_dir_var)
+    dir_entry.pack(side="left", fill="x", expand=True, padx=8)
+
+    def choose_folder():
+        folder = filedialog.askdirectory(title="选择图片文件夹", initialdir=current_dir_var.get())
+        if folder:
+            current_dir_var.set(folder)
+            refresh_grid()
+
+    tk.Button(top, text="选择文件夹", command=choose_folder).pack(side="left", padx=(0, 6))
+    tk.Button(top, text="刷新", command=lambda: refresh_grid()).pack(side="left")
+
+    quick = tk.Frame(picker)
+    quick.pack(fill="x", padx=12, pady=(0, 8))
+    for folder in get_quick_image_dirs():
+        label = folder.name if folder != DESKTOP else "桌面"
+        tk.Button(
+            quick,
+            text=label,
+            command=lambda p=folder: (current_dir_var.set(str(p)), refresh_grid()),
+        ).pack(side="left", padx=(0, 6))
+
+    canvas = tk.Canvas(picker, highlightthickness=0)
+    scrollbar = ttk.Scrollbar(picker, orient="vertical", command=canvas.yview)
+    grid = tk.Frame(canvas)
+    grid_window = canvas.create_window((0, 0), window=grid, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.pack(side="left", fill="both", expand=True, padx=(12, 0), pady=(0, 8))
+    scrollbar.pack(side="right", fill="y", padx=(0, 12), pady=(0, 8))
+
+    def on_grid_configure(event=None):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    def on_canvas_configure(event):
+        canvas.itemconfigure(grid_window, width=event.width)
+
+    grid.bind("<Configure>", on_grid_configure)
+    canvas.bind("<Configure>", on_canvas_configure)
+
+    bottom = tk.Frame(picker)
+    bottom.pack(fill="x", padx=12, pady=(0, 12))
+    selected_entry = tk.Entry(bottom, textvariable=selected_path_var)
+    selected_entry.pack(side="left", fill="x", expand=True)
+
+    def confirm_selection():
+        selected = selected_path_var.get().strip()
+        if selected and Path(selected).exists():
+            target_var.set(selected)
+            last_image_dir = Path(selected).parent
+            picker.destroy()
+
+    def open_native_dialog():
+        file_path = filedialog.askopenfilename(
+            title=tr("choose_title"),
+            initialdir=current_dir_var.get(),
+            filetypes=[
+                (tr("image_files"), "*.png;*.jpg;*.jpeg;*.webp;*.bmp"),
+                (tr("all_files"), "*.*"),
+            ],
+        )
+        if file_path:
+            target_var.set(file_path)
+            picker.destroy()
+
+    tk.Button(bottom, text="打开", width=12, command=confirm_selection).pack(side="left", padx=8)
+    tk.Button(bottom, text="系统选择", width=12, command=open_native_dialog).pack(side="left")
+
+    def select_image(path):
+        selected_path_var.set(str(path))
+
+    def choose_image(path):
+        selected_path_var.set(str(path))
+        confirm_selection()
+
+    def refresh_grid():
+        for child in grid.winfo_children():
+            child.destroy()
+        thumbnail_refs.clear()
+
+        folder = Path(current_dir_var.get())
+        images = list_images(folder)
+        if not images:
+            tk.Label(grid, text="这个文件夹里没有图片").grid(row=0, column=0, padx=20, pady=20, sticky="w")
+            return
+
+        columns = 4
+        for index, image_path in enumerate(images[:240]):
+            row = index // columns
+            col = index % columns
+            item = tk.Frame(grid, width=210, height=190, relief="groove", bd=1)
+            item.grid(row=row, column=col, padx=10, pady=10, sticky="n")
+            item.grid_propagate(False)
+
+            try:
+                image = Image.open(image_path)
+                image.thumbnail((180, 120))
+                photo = ImageTk.PhotoImage(image)
+                thumbnail_refs.append(photo)
+                image_label = tk.Label(item, image=photo, cursor="hand2")
+            except Exception:
+                image_label = tk.Label(item, text="无法预览", width=22, height=7)
+
+            image_label.pack(pady=(8, 4))
+            name = image_path.name
+            if len(name) > 24:
+                name = name[:21] + "..."
+            text_label = tk.Label(item, text=name, wraplength=180)
+            text_label.pack()
+
+            for widget in (item, image_label, text_label):
+                widget.bind("<Button-1>", lambda event, p=image_path: select_image(p))
+                widget.bind("<Double-Button-1>", lambda event, p=image_path: choose_image(p))
+
+        if len(images) > 240:
+            tk.Label(grid, text="只显示最近 240 张图片，请换文件夹或用系统选择搜索。").grid(
+                row=(240 // columns) + 1,
+                column=0,
+                columnspan=columns,
+                padx=10,
+                pady=10,
+                sticky="w",
+            )
+
+    refresh_grid()
 
 
 def clear_var(target_var):
@@ -580,7 +773,7 @@ backend_label.pack(side="left")
 backend_box = ttk.Combobox(
     backend_frame,
     textvariable=backend_var,
-    values=[BACKEND_AUTO, BACKEND_LOCAL_CHARACTER, BACKEND_TRIPOSR, BACKEND_EXTERNAL_MULTIVIEW],
+    values=[BACKEND_AUTO, BACKEND_TRIPOSR_FUSION, BACKEND_TRIPOSR, BACKEND_EXTERNAL_MULTIVIEW],
     state="readonly",
     width=24,
 )

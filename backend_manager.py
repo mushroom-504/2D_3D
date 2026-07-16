@@ -6,8 +6,9 @@ from pathlib import Path
 TRIPOSR_PYTHON = r"D:\conda\envs\triposr\python.exe"
 BACKEND_AUTO = "Auto"
 BACKEND_TRIPOSR = "TripoSR"
+BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
+BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
-BACKEND_LOCAL_CHARACTER = "Local Character"
 
 DESKTOP = Path.home() / "Desktop"
 TRIPOSR_DIR_CANDIDATES = [
@@ -78,6 +79,35 @@ def run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=384):
     if not obj_path.exists():
         raise RuntimeError(f"OBJ file not found:\n{obj_path}")
     return obj_path
+
+
+def run_triposr_fusion_backend(image_paths_for_agent, result_dir, mc_resolution=384):
+    """Run TripoSR for each available view, then return view -> OBJ path."""
+    result_dir = Path(result_dir)
+    fusion_dir = result_dir / "triposr_fusion_meshes"
+    fusion_dir.mkdir(parents=True, exist_ok=True)
+
+    mesh_paths = {}
+    for view in ["front", "back", "left", "right", "top", "bottom"]:
+        image_path = (image_paths_for_agent or {}).get(view)
+        if not image_path:
+            continue
+        image_path = Path(image_path)
+        if not image_path.exists():
+            continue
+
+        view_output_dir = fusion_dir / f"{view}_triposr_output"
+        obj_path = run_triposr_backend(image_path, view_output_dir, mc_resolution=mc_resolution)
+        copied_obj = fusion_dir / f"{view}_mesh.obj"
+        shutil.copy2(obj_path, copied_obj)
+        mesh_paths[view] = copied_obj
+
+    if "front" not in mesh_paths:
+        raise RuntimeError("TripoSR Fusion needs a front image to create the main mesh.")
+    if len(mesh_paths) < 2:
+        raise RuntimeError("TripoSR Fusion needs front plus at least one reference image.")
+
+    return mesh_paths
 
 
 def run_external_multiview_backend(image_paths_for_agent, result_dir):
