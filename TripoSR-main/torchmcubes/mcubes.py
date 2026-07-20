@@ -6,7 +6,7 @@ import torch
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 
-from torchmcubes import grid_interp, marching_cubes
+from torchmcubes.torchmcubes import grid_interp, marching_cubes
 
 
 def frustum(left, right, bottom, top, znear, zfar):

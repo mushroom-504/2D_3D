@@ -35,7 +35,7 @@ pip install git+https://github.com/tatsy/torchmcubes.git
 
 ## Usage
 
-See [mcubes.py](./mcubes.py) for more details.
+See [mcubes.py](mcubes.py) for more details.
 
 ```python
 import time
@@ -81,7 +81,7 @@ visualize(verts, faces, colors)
 
 ## Screen shot
 
-![metaball.png](./metaball.png)
+![metaball.png](metaball.png)
 
 ## Copyright
 
