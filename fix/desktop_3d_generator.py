@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
 import threading
@@ -5,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
+
+from PIL import Image, ImageTk
 
 from agent_brain import analyze_request, build_modeling_intent, create_modeling_plan, save_agent_analysis
 from auto_repair import MAX_REPAIR_ATTEMPTS, analyze_error_message, build_repair_intent
@@ -583,6 +587,7 @@ def open_thumbnail_picker(target_var):
     selected_entry.pack(side="left", fill="x", expand=True)
 
     def confirm_selection():
+        global last_image_dir
         selected = selected_path_var.get().strip()
         if selected and Path(selected).exists():
             target_var.set(selected)
@@ -590,6 +595,7 @@ def open_thumbnail_picker(target_var):
             picker.destroy()
 
     def open_native_dialog():
+        global last_image_dir
         file_path = filedialog.askopenfilename(
             title=tr("choose_title"),
             initialdir=current_dir_var.get(),
@@ -600,6 +606,7 @@ def open_thumbnail_picker(target_var):
         )
         if file_path:
             target_var.set(file_path)
+            last_image_dir = Path(file_path).parent
             picker.destroy()
 
     tk.Button(bottom, text="打开", width=12, command=confirm_selection).pack(side="left", padx=8)
