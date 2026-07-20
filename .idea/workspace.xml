@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/inference.py" beforeDir="false" afterPath="$PROJECT_DIR$/CraftsMan/inference.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/agent_brain.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/agent_brain.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/启动图片转3D.bat" beforeDir="false" afterPath="$PROJECT_DIR$/启动图片转3D.bat" afterDir="false" />
-    </list>
+    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -113,8 +105,17 @@
       <workItem from="1784096343870" duration="7479000" />
       <workItem from="1784160910130" duration="5700000" />
       <workItem from="1784517689955" duration="56000" />
-      <workItem from="1784517881639" duration="7416000" />
+      <workItem from="1784517881639" duration="7778000" />
     </task>
+    <task id="LOCAL-00001" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1784530578188</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1784530578188</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -142,6 +143,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="代码更新" />
+    <option name="LAST_COMMIT_MESSAGE" value="代码更新" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/PythonProject4$test_jiaorong_api.coverage" NAME="test_jiaorong_api 覆盖结果" MODIFIED="1784102154262" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
