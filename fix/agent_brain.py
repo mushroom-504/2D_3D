@@ -2,6 +2,7 @@ from three_view_agent import analyze_three_view_request, build_blender_intent, s
 
 
 BACKEND_AUTO = "Auto"
+BACKEND_CRAFTSMAN = "CraftsMan"
 BACKEND_TRIPOSR = "TripoSR"
 BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
 BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
