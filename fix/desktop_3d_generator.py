@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
 import threading
@@ -6,15 +8,19 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
+from PIL import Image, ImageTk
+
 from agent_brain import analyze_request, build_modeling_intent, create_modeling_plan, save_agent_analysis
 from auto_repair import MAX_REPAIR_ATTEMPTS, analyze_error_message, build_repair_intent
 from backend_manager import (
     BACKEND_AUTO,
+    BACKEND_CRAFTSMAN,
     BACKEND_EXTERNAL_MULTIVIEW,
     BACKEND_TRIPOSR,
     BACKEND_TRIPOSR_FUSION,
     WORK_ROOT,
     copy_reference_images,
+    run_craftsman_backend,
     run_external_multiview_backend,
     run_triposr_backend,
     run_triposr_fusion_backend,
@@ -206,6 +212,10 @@ def run_backend_with_auto_repair(selected_backend, image_paths_for_agent, result
     for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
         try:
             log(f"Backend attempt {attempt}/{MAX_REPAIR_ATTEMPTS}: {current_backend}")
+            if current_backend == BACKEND_CRAFTSMAN:
+                log("CraftsMan CPU mode is starting. This can take a long time.")
+                return run_craftsman_backend(safe_input, result_dir), BACKEND_CRAFTSMAN
+
             if current_backend == BACKEND_EXTERNAL_MULTIVIEW:
                 log("External Multi-View may take several minutes on CPU. The window will stay responsive while it runs.")
                 return run_external_multiview_backend(image_paths_for_agent, result_dir), current_backend
@@ -234,7 +244,10 @@ def run_backend_with_auto_repair(selected_backend, image_paths_for_agent, result
             if attempt >= MAX_REPAIR_ATTEMPTS:
                 break
 
-            if current_backend == BACKEND_EXTERNAL_MULTIVIEW:
+            if current_backend == BACKEND_CRAFTSMAN:
+                current_backend = BACKEND_TRIPOSR
+                log("Auto-repair: CraftsMan failed, falling back to TripoSR.")
+            elif current_backend == BACKEND_EXTERNAL_MULTIVIEW:
                 current_backend = BACKEND_TRIPOSR
                 log("Auto-repair: falling back to TripoSR for the next attempt.")
             else:
@@ -574,6 +587,7 @@ def open_thumbnail_picker(target_var):
     selected_entry.pack(side="left", fill="x", expand=True)
 
     def confirm_selection():
+        global last_image_dir
         selected = selected_path_var.get().strip()
         if selected and Path(selected).exists():
             target_var.set(selected)
@@ -581,6 +595,7 @@ def open_thumbnail_picker(target_var):
             picker.destroy()
 
     def open_native_dialog():
+        global last_image_dir
         file_path = filedialog.askopenfilename(
             title=tr("choose_title"),
             initialdir=current_dir_var.get(),
@@ -591,6 +606,7 @@ def open_thumbnail_picker(target_var):
         )
         if file_path:
             target_var.set(file_path)
+            last_image_dir = Path(file_path).parent
             picker.destroy()
 
     tk.Button(bottom, text="打开", width=12, command=confirm_selection).pack(side="left", padx=8)
@@ -741,7 +757,7 @@ main_image_var = tk.StringVar()
 view_vars = {key: tk.StringVar() for key in VIEW_KEYS}
 language_var = tk.StringVar(value=TEXT["zh"]["chinese"])
 progress_var = tk.IntVar(value=0)
-backend_var = tk.StringVar(value=BACKEND_AUTO)
+backend_var = tk.StringVar(value=BACKEND_CRAFTSMAN)
 view_labels = {}
 view_choose_buttons = {}
 view_clear_buttons = {}
@@ -773,7 +789,7 @@ backend_label.pack(side="left")
 backend_box = ttk.Combobox(
     backend_frame,
     textvariable=backend_var,
-    values=[BACKEND_AUTO, BACKEND_TRIPOSR_FUSION, BACKEND_TRIPOSR, BACKEND_EXTERNAL_MULTIVIEW],
+    values=[BACKEND_CRAFTSMAN, BACKEND_AUTO, BACKEND_TRIPOSR_FUSION, BACKEND_TRIPOSR, BACKEND_EXTERNAL_MULTIVIEW],
     state="readonly",
     width=24,
 )

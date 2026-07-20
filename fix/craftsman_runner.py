@@ -1,0 +1,98 @@
+"""Small command-line bridge between Project4 and the CraftsMan Conda environment."""
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+
+MIN_CHECKPOINT_BYTES = 1024 * 1024
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate one 3D mesh with CraftsMan.")
+    parser.add_argument("--input", required=True, help="Input image path")
+    parser.add_argument("--output", required=True, help="Output OBJ/GLB path")
+    parser.add_argument("--craftsman-root", required=True, help="CraftsMan3D repository root")
+    parser.add_argument("--model-dir", required=True, help="Folder containing config.yaml and model.ckpt")
+    parser.add_argument("--steps", type=int, default=50)
+    parser.add_argument("--seed", type=int, default=42)
+    return parser.parse_args()
+
+
+def require_file(path, label):
+    if not path.is_file():
+        raise RuntimeError(f"{label} was not found: {path}")
+
+
+def main():
+    args = parse_args()
+    input_path = Path(args.input).resolve()
+    output_path = Path(args.output).resolve()
+    craftsman_root = Path(args.craftsman_root).resolve()
+    model_dir = Path(args.model_dir).resolve()
+
+    require_file(input_path, "Input image")
+    require_file(model_dir / "config.yaml", "CraftsMan config.yaml")
+    checkpoint = model_dir / "model.ckpt"
+    require_file(checkpoint, "CraftsMan model.ckpt")
+    if checkpoint.stat().st_size < MIN_CHECKPOINT_BYTES:
+        raise RuntimeError(
+            f"CraftsMan model.ckpt is incomplete ({checkpoint.stat().st_size:,} bytes): {checkpoint}\n"
+            "Delete this partial file and download the full DoraVAE model.ckpt again."
+        )
+    if not (craftsman_root / "craftsman").is_dir():
+        raise RuntimeError(f"Invalid CraftsMan root (craftsman package missing): {craftsman_root}")
+
+    sys.path.insert(0, str(craftsman_root))
+    os.chdir(craftsman_root)
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError(
+            "PyTorch is not installed in the CraftsMan Conda environment. "
+            "Install the CraftsMan dependencies in D:\\conda\\envs\\CraftsMan first."
+        ) from exc
+    # if not torch.cuda.is_available():
+    #     raise RuntimeError(
+    #         "CraftsMan requires a CUDA-capable NVIDIA GPU, but torch.cuda.is_available() is False. "
+    #         "Check the NVIDIA driver and install a CUDA build of PyTorch in the CraftsMan environment."
+    #     )
+
+    try:
+        from craftsman import CraftsManPipeline
+    except Exception as exc:
+        raise RuntimeError(
+            "CraftsMan could not be imported. Install docker/requirements.txt in the CraftsMan environment. "
+            f"Original error: {exc}"
+        ) from exc
+
+    print(f"Loading CraftsMan model on CPU: {model_dir}", flush=True)
+    pipeline = CraftsManPipeline.from_pretrained(
+        str(model_dir),
+        device="cpu",
+        torch_dtype=torch.float32,
+    )
+    print(f"Generating mesh from: {input_path}", flush=True)
+    result = pipeline(
+        str(input_path),
+        num_inference_steps=args.steps,
+        seed=args.seed,
+        use_flashVDM=False,
+    )
+    if not result.meshes:
+        raise RuntimeError("CraftsMan returned no meshes.")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    result.meshes[0].export(str(output_path))
+    if not output_path.exists() or output_path.stat().st_size == 0:
+        raise RuntimeError(f"Mesh export failed: {output_path}")
+    print(f"CRAFTSMAN_OUTPUT={output_path}", flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print(f"CraftsMan runner error: {exc}", file=sys.stderr, flush=True)
+        raise

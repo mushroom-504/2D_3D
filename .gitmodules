@@ -1,0 +1,3 @@
+[submodule "ckpts/craftsman-doravae/craftsman"]
+	path = ckpts/craftsman-doravae/craftsman
+	url = https://huggingface.co/craftsman3d/craftsman
