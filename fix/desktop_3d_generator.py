@@ -757,7 +757,7 @@ main_image_var = tk.StringVar()
 view_vars = {key: tk.StringVar() for key in VIEW_KEYS}
 language_var = tk.StringVar(value=TEXT["zh"]["chinese"])
 progress_var = tk.IntVar(value=0)
-backend_var = tk.StringVar(value=BACKEND_CRAFTSMAN)
+backend_var = tk.StringVar(value=BACKEND_TRIPOSR)
 view_labels = {}
 view_choose_buttons = {}
 view_clear_buttons = {}

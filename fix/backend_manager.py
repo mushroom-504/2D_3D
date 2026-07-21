@@ -3,6 +3,14 @@ import subprocess
 from pathlib import Path
 
 
+import sys
+
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+
+
 TRIPOSR_PYTHON = r"D:\conda\envs\triposr\python.exe"
 BACKEND_AUTO = "Auto"
 BACKEND_CRAFTSMAN = "CraftsMan"
@@ -11,7 +19,7 @@ BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
 BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = BASE_DIR
 TRIPOSR_DIR_CANDIDATES = [
     PROJECT_ROOT / "TripoSR-main",
 ]

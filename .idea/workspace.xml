@@ -2,299 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新">
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/README_zh.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/demo_result.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/examples/bug.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/examples/dragon.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/examples/mask.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/examples/monster.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/examples/werewolf.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/history.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/icon.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/logo.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/teaser.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/asset/video_cover.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/configs/image-to-shape-diffusion/DoraVAE-dinov2reglarge518-pixart-rectified-flow-dit32.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/configs/image-to-shape-diffusion/clip-dinov2-pixart-diffusion-dit32-finetune.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/configs/image-to-shape-diffusion/clip-dinov2-pixart-diffusion-dit32-mv.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/configs/image-to-shape-diffusion/clip-dinov2-pixart-diffusion-dit32.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/configs/shape-autoencoder/michelangelo-l768-e64-ne8-nd16.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/autoencoders/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/autoencoders/dora_autoencoder.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/autoencoders/michelangelo_autoencoder.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/autoencoders/volume_decoders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/clip/modeling_clip.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/clip/modeling_conditional_clip.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/clip_dinov2_encoder.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/dinov2/modeling_conditional_dinov2.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/dinov2/modeling_dinov2.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/dinov2_encoder.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/conditional_encoders/dinov2_with_registers/modeling_dinov2_with_registers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/denoisers/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/denoisers/pixart_denoiser.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/denoisers/utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/geometry/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/geometry/base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/geometry/utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/transformers/attention.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/transformers/perceiver_1d.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/models/transformers/utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/pipeline.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/shape_autoencoder.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/shape_diffusion.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/shape_rectified_flow.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/systems/utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/callbacks.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/checkpoint.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/misc.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/ops.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/saving.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/scheduler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/craftsman/utils/typing.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/docker/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/docker/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/docker/apt-sources.list" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/gradio_app.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/inference.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/train.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/dragon.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_0b4a51737b6245eab124b7f092dc9173.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_0d9ff854451645129d8c872a897bd02d.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_13b3208ded4c4e60bfc42331d9335823.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_154bd4885cab446cb7bbea8e1f0731fc.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_178cd95b399a4be496e17c395e222e89.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_17d6815dab1e4fd89f344602d507d6fa.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_1c7b6ae692f9485380da030e59b99ce0.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_2b44e548d6d345fe9fab1d0a48372b65.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_2f2a198e3b49484181c66bdf65b33ada.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_3423b63cc32d460e937956e67186f43e.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_3a2276de489b496c8b8d8c4a4235c6fc.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_3d9fb8bd86854aa69ee6f69fcbeaca51.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_432c81e85993407aab9edbaead959cbf.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_45ab99f3bd4648b7b445898372d47510.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_46d2cc19a3b849999759a84a20c74720.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_53e94a39d580467b8f06ef9e39312a82.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_598b22b710b44c22a962fecc9dd92312.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_5eb55023bf544014a11203adaa8ed9ca.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_72b70a0816754d6f8d8b0b7b5d0600db.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_7a3e5fcf219f4569ad5e0e0b8dcc0a95.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_82382d08149c4f7890174236bbe0087a.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_833a44cb4b7147ac83f050972e4ccfe0.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_89649d78a8da4d4f9dcd1bb0c1389d02.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_8da3265b00084d7b891ce2461e1f76ba.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_bird.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_boy.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_da9464c9d24d4026890c66e574210611.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_def45fd6e60146c4bc40ffd040bb7035.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_eb7931191b2048f2a77cf543fe2348d2.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_ed0a8da0978f4779b3353a84bd21bef2.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_f7a67c4831084ae99fc5b2c5886d971d.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/rgba_monster.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/images/val_samples_rgb_image.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/val_data/werewolf.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CraftsMan3D-main/CraftsMan3D-main/watertight_and_sampling.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/PythonProject4.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/TripoSR-main.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/LICENSE" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/captured.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/chair.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/flamingo.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/hamburger.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/horse.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/iso_house.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/marble.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/police_woman.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/poly_fox.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/robot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/stripes.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/teapot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/tiger_girl.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/examples/unicorn.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/figures/comparison800.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/figures/scatter-comparison.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/figures/teaser800.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/figures/visual_comparisons.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/gradio_app.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/output_aa4/0/result.blend" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/run.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/.clang-format" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/.github/workflows/build.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/.vscode/settings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/LICENSE" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.cmake/api/v1/query/cache-v2" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.cmake/api/v1/query/cmakeFiles-v1" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.cmake/api/v1/query/codemodel-v2" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.cmake/api/v1/query/toolchains-v1" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.cmake/api/v1/reply/error-2026-07-08T06-01-06-0960.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/.skbuild-info.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/CMakeCache.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/CMakeFiles/4.3.4/CMakeSystem.cmake" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/CMakeFiles/CMakeConfigureLog.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/CMakeFiles/cmake.check_cache" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/build/CMakeInit.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/cuda_utils.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/grid_interp_cpu.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/grid_interp_cuda.cu" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/helper_math.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/macros.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/mcubes.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/mcubes_cpu.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/cxx/mcubes_cuda.cu" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/mcubes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/metaball.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/pyproject.toml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/torchmcubes/torchmcubes/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/bake_texture.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/isosurface.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/nerf_renderer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/network_utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/tokenizers/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/tokenizers/image.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/tokenizers/triplane.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/transformer/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/transformer/attention.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/transformer/basic_transformer_block.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/models/transformer/transformer_1d.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/system.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/TripoSR-main/tsr/utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/MULTIVIEW_BACKEND_README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/agent_brain.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/auto_repair.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/backend_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/blender_auto_import.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/blender_executor.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/desktop_3d_generator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/fix_existing_blend.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/mast3r_multiview_runner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/mesh_refiner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/model_checker.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/project_history.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/run_blender.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/fix/three_view_agent.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/inference.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/.idea/instant-meshes-master.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/.appveyor.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/.gitmodules" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/.travis.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/LICENSE.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/ext/half/half.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/ext/rply/LICENSE" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/ext/rply/rply.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/ext/rply/rply.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/MacOSXBundleInfo.plist.in" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/comb.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/delete_stroke.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/im.icns" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/im.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/im.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/im.rc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/instantmeshes.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/loadmesh.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/scare.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/screenshot.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_flowline.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_flowline.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_lines.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_lines.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_mesh.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_mesh.geo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_mesh.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_orientation_field.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_orientation_field.geo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_orientation_field.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_point.geo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_point.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_position_field.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_position_field.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_quadmesh.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_quadmesh.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_singularity.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_singularity.geo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/shader_singularity.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/sing_dir.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/resources/sing_pos.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/aabb.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/adjacency.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/adjacency.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/batch.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/batch.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/bvh.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/bvh.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/cleanup.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/cleanup.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/common.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/dedge.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/dedge.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/diff.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/extract.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/extract.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/field.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/field.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/glutil.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/glutil.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/gui_serializer.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/hierarchy.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/hierarchy.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/main.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/meshio.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/meshio.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/meshstats.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/meshstats.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/normal.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/normal.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/reorder.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/reorder.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/serializer.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/serializer.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/smoothcurve.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/smoothcurve.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/subdivide.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/subdivide.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/viewer.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/viewer.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/widgets.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/instant-meshes-master/instant-meshes-master/src/widgets.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/test_jiaorong_api.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CraftsMan/启动图片转3D.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -333,29 +44,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.desktop_3d_generator.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.reconstruction_agent.executor&quot;: &quot;Run&quot;,
-    &quot;Python.run_blender.executor&quot;: &quot;Run&quot;,
-    &quot;Python.scripting_agent.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_jiaorong_api.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Git/2D_3D&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.backend_manager.executor": "Run",
+    "Python.desktop_3d_generator.executor": "Run",
+    "Python.main_app.executor": "Run",
+    "Python.reconstruction_agent.executor": "Run",
+    "Python.run_blender.executor": "Run",
+    "Python.scripting_agent.executor": "Run",
+    "Python.test_jiaorong_api.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/Git/2D_3D/fix/dist/3D建模智能体",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Git\2D_3D\fix\dist\3D建模智能体" />
+      <recent name="D:\Git\2D_3D\fix\3D建模智能体" />
       <recent name="D:\Git\2D_3D" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -407,7 +121,8 @@
       <workItem from="1784538069464" duration="59000" />
       <workItem from="1784538487860" duration="610000" />
       <workItem from="1784595150222" duration="6661000" />
-      <workItem from="1784602934318" duration="1579000" />
+      <workItem from="1784602934318" duration="1930000" />
+      <workItem from="1784613454536" duration="7107000" />
     </task>
     <task id="LOCAL-00001" summary="代码更新">
       <option name="closed" value="true" />
@@ -417,11 +132,22 @@
       <option name="project" value="LOCAL" />
       <updated>1784530578188</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1784604930575</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1784604930575</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.spec" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -454,10 +180,11 @@
     <SUITE FILE_PATH="coverage/PythonProject4$test_jiaorong_api.coverage" NAME="test_jiaorong_api 覆盖结果" MODIFIED="1784102154262" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject4$scripting_agent.coverage" NAME="scripting_agent 覆盖结果" MODIFIED="1783493359965" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject4$run_blender.coverage" NAME="run_blender 覆盖结果" MODIFIED="1783499115821" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/2D_3D$backend_manager.coverage" NAME="backend_manager 覆盖结果" MODIFIED="1784619260319" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
     <SUITE FILE_PATH="coverage/PythonProject4$main_app.coverage" NAME="main_app 覆盖结果" MODIFIED="1784095375144" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject4$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1784166734175" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
     <SUITE FILE_PATH="coverage/PythonProject4$reconstruction_agent.coverage" NAME="reconstruction_agent 覆盖结果" MODIFIED="1783492761284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/2D_3D$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1784603455712" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
+    <SUITE FILE_PATH="coverage/2D_3D$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1784617831857" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
     <SUITE FILE_PATH="coverage/2D_3D$test_jiaorong_api.coverage" NAME="test_jiaorong_api 覆盖结果" MODIFIED="1784602190951" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
