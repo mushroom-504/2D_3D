@@ -1,0 +1,15 @@
+{
+    "paths": {
+        "triposr_python": "D:/conda/envs/triposr/python.exe",
+        "triposr_dir": "../TripoSR-main",
+
+        "work_root": "C:/TSR_Work",
+
+        "blender_exe": "D:/software/Blender/blender.exe"
+    },
+
+    "runtime": {
+        "default_backend": "TripoSR",
+        "device": "cuda"
+    }
+}

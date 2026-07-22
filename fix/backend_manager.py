@@ -11,7 +11,31 @@ else:
     BASE_DIR = Path(__file__).resolve().parents[1]
 
 
-TRIPOSR_PYTHON = r"D:\conda\envs\triposr\python.exe"
+from config_loader import get_path
+
+TRIPOSR_PYTHON = str(
+    get_path("triposr_python")
+)
+
+TRIPOSR_DIR = get_path(
+    "triposr_dir"
+)
+
+
+CRAFTSMAN_PYTHON = get_path(
+    "craftsman_python"
+)
+
+
+CRAFTSMAN_DIR = get_path(
+    "craftsman_dir"
+)
+
+
+WORK_ROOT = get_path(
+    "work_root"
+)
+
 BACKEND_AUTO = "Auto"
 BACKEND_CRAFTSMAN = "CraftsMan"
 BACKEND_TRIPOSR = "TripoSR"

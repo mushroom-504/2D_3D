@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fix/config.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fix/config_loader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,6 +16,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Script" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -44,28 +45,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.backend_manager.executor": "Run",
-    "Python.desktop_3d_generator.executor": "Run",
-    "Python.main_app.executor": "Run",
-    "Python.reconstruction_agent.executor": "Run",
-    "Python.run_blender.executor": "Run",
-    "Python.scripting_agent.executor": "Run",
-    "Python.test_jiaorong_api.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Git/2D_3D/fix/dist/3D建模智能体",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.backend_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.desktop_3d_generator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.reconstruction_agent.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_blender.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scripting_agent.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_jiaorong_api.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Git/2D_3D/fix/dist/3D建模智能体&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\Git\2D_3D\fix\dist\3D建模智能体" />
@@ -122,7 +123,8 @@
       <workItem from="1784538487860" duration="610000" />
       <workItem from="1784595150222" duration="6661000" />
       <workItem from="1784602934318" duration="1930000" />
-      <workItem from="1784613454536" duration="7107000" />
+      <workItem from="1784613454536" duration="7826000" />
+      <workItem from="1784679404455" duration="2050000" />
     </task>
     <task id="LOCAL-00001" summary="代码更新">
       <option name="closed" value="true" />
@@ -140,7 +142,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784604930575</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1784620701887</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1784620701887</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
