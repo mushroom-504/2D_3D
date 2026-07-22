@@ -3,20 +3,65 @@ import subprocess
 from pathlib import Path
 
 
-TRIPOSR_PYTHON = r"D:\conda\envs\triposr\python.exe"
+import sys
+
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+
+
+from config_loader import get_path
+
+TRIPOSR_PYTHON = str(
+    get_path("triposr_python")
+)
+
+TRIPOSR_DIR = get_path(
+    "triposr_dir"
+)
+
+
+CRAFTSMAN_PYTHON = get_path(
+    "craftsman_python"
+)
+
+
+CRAFTSMAN_DIR = get_path(
+    "craftsman_dir"
+)
+
+
+WORK_ROOT = get_path(
+    "work_root"
+)
+
 BACKEND_AUTO = "Auto"
+BACKEND_CRAFTSMAN = "CraftsMan"
 BACKEND_TRIPOSR = "TripoSR"
 BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
 BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
 
-DESKTOP = Path.home() / "Desktop"
+PROJECT_ROOT = BASE_DIR
 TRIPOSR_DIR_CANDIDATES = [
-    DESKTOP / "TripoSR-main",
-    DESKTOP / "Git" / "2D_3D" / "TripoSR-main",
-    DESKTOP / "TSR" / "TripoSR-main",
+    PROJECT_ROOT / "TripoSR-main",
 ]
-TRIPOSR_DIR = next((path for path in TRIPOSR_DIR_CANDIDATES if path.exists()), TRIPOSR_DIR_CANDIDATES[0])
+TRIPOSR_DIR = TRIPOSR_DIR_CANDIDATES[0]
+CRAFTSMAN_PYTHON = Path(r"D:\conda\envs\CraftsMan\python.exe")
+CRAFTSMAN_DIR = PROJECT_ROOT / "CraftsMan"
+CRAFTSMAN_MODEL_CANDIDATES = [
+    Path(r"D:\CraftsMan_models\craftsman-DoraVAE"),
+    PROJECT_ROOT / "ckpts" / "craftsman-DoraVAE",
+    PROJECT_ROOT / "ckpts" / "craftsman-doravae",
+]
+CRAFTSMAN_MODEL_DIR = next(
+    (
+        path for path in CRAFTSMAN_MODEL_CANDIDATES
+        if (path / "config.yaml").exists() and (path / "model.ckpt").exists()
+    ),
+    CRAFTSMAN_MODEL_CANDIDATES[0],
+)
 WORK_ROOT = Path(r"C:\TSR_Work")
 
 
@@ -79,6 +124,31 @@ def run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=384):
     if not obj_path.exists():
         raise RuntimeError(f"OBJ file not found:\n{obj_path}")
     return obj_path
+
+
+def run_craftsman_backend(safe_input, result_dir):
+    if not CRAFTSMAN_PYTHON.exists():
+        raise RuntimeError(f"CraftsMan Python environment not found: {CRAFTSMAN_PYTHON}")
+    if not (CRAFTSMAN_DIR / "craftsman").exists():
+        raise RuntimeError(f"CraftsMan project not found: {CRAFTSMAN_DIR}")
+
+    runner = Path(__file__).with_name("craftsman_runner.py")
+    output_dir = Path(result_dir) / "craftsman_output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_obj = output_dir / "mesh.obj"
+    run_command(
+        [
+            str(CRAFTSMAN_PYTHON), str(runner),
+            "--input", str(safe_input),
+            "--output", str(output_obj),
+            "--craftsman-root", str(CRAFTSMAN_DIR),
+            "--model-dir", str(CRAFTSMAN_MODEL_DIR),
+        ],
+        cwd=str(CRAFTSMAN_DIR),
+    )
+    if not output_obj.exists() or output_obj.stat().st_size == 0:
+        raise RuntimeError(f"CraftsMan did not create an OBJ: {output_obj}")
+    return output_obj
 
 
 def run_triposr_fusion_backend(image_paths_for_agent, result_dir, mc_resolution=384):

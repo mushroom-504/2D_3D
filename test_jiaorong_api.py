@@ -40,7 +40,7 @@ def ask_model(question: str) -> str:
 
     response = client.chat.completions.create(
         # 第一次测试建议先使用基础模型
-        model="jiaorong-instruct",
+        model="jiaorong-deepseek-v4-flash",
 
         messages=[
             {

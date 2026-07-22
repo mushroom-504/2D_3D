@@ -9,6 +9,7 @@ env/
 .idea/
 .vscode/
 .env
+.aider*
 .env.*
 
 # Generated 3D outputs and temporary work
