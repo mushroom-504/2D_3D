@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新">
-      <change afterPath="$PROJECT_DIR$/fix/backend_health.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/run_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/run_blender.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +124,7 @@
       <workItem from="1784679404455" duration="9025000" />
       <workItem from="1784765402227" duration="639000" />
       <workItem from="1784773843693" duration="9514000" />
-      <workItem from="1784851520585" duration="1430000" />
+      <workItem from="1784851520585" duration="3708000" />
     </task>
     <task id="LOCAL-00001" summary="代码更新">
       <option name="closed" value="true" />
@@ -186,7 +182,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784714757750</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1784853261304</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1784853261304</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
