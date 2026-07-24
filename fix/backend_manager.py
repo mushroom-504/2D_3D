@@ -43,47 +43,65 @@ BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
 BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
 
-PROJECT_ROOT = BASE_DIR
-TRIPOSR_DIR_CANDIDATES = [
-    PROJECT_ROOT / "TripoSR-main",
-]
-TRIPOSR_DIR = TRIPOSR_DIR_CANDIDATES[0]
-CRAFTSMAN_PYTHON = Path(r"D:\conda\envs\CraftsMan\python.exe")
-CRAFTSMAN_DIR = PROJECT_ROOT / "CraftsMan"
-CRAFTSMAN_MODEL_CANDIDATES = [
-    Path(r"D:\CraftsMan_models\craftsman-DoraVAE"),
-    PROJECT_ROOT / "ckpts" / "craftsman-DoraVAE",
-    PROJECT_ROOT / "ckpts" / "craftsman-doravae",
-]
-CRAFTSMAN_MODEL_DIR = next(
-    (
-        path for path in CRAFTSMAN_MODEL_CANDIDATES
-        if (path / "config.yaml").exists() and (path / "model.ckpt").exists()
-    ),
-    CRAFTSMAN_MODEL_CANDIDATES[0],
-)
-WORK_ROOT = Path(r"C:\TSR_Work")
 
 
-def run_command(command, cwd=None):
-    result = subprocess.run(
-        command,
+
+import subprocess
+
+
+CURRENT_PROCESS = None
+
+
+def run_command(cmd, cwd=None, env=None, timeout=None):
+
+    global CURRENT_PROCESS
+
+
+    CURRENT_PROCESS = subprocess.Popen(
+        cmd,
         cwd=cwd,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
+        env=env
     )
-    if result.returncode != 0:
-        raise RuntimeError(
-            "Command failed:\n\n"
-            + " ".join(str(x) for x in command)
-            + "\n\nSTDOUT:\n"
-            + result.stdout
-            + "\n\nSTDERR:\n"
-            + result.stderr
+
+
+    try:
+        result = CURRENT_PROCESS.wait(
+            timeout=timeout
         )
+
+    except subprocess.TimeoutExpired:
+
+        CURRENT_PROCESS.kill()
+
+        raise RuntimeError(
+            "Command timeout"
+        )
+
+
+    finally:
+        CURRENT_PROCESS = None
+
+
+    if result != 0:
+        raise RuntimeError(
+            f"Command failed with code {result}"
+        )
+
+
     return result
+
+def stop_current_process():
+
+    global CURRENT_PROCESSES
+
+
+    for p in CURRENT_PROCESSES:
+
+        if p.poll() is None:
+            p.kill()
+
+
+    CURRENT_PROCESSES.clear()
 
 
 def copy_reference_images(ref_map, result_dir):

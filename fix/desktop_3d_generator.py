@@ -24,6 +24,7 @@ from backend_manager import (
     run_external_multiview_backend,
     run_triposr_backend,
     run_triposr_fusion_backend,
+    stop_current_process,
 )
 from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
 from mesh_refiner import write_refinement_report
@@ -134,6 +135,15 @@ TEXT = {
     },
 }
 
+def cancel_task():
+
+    log("正在终止任务...")
+
+    stop_current_process()
+
+    log("任务已取消")
+
+    set_busy(False)
 
 def tr(key):
     return TEXT[LANG][key]

@@ -6,7 +6,7 @@ OBJ_PATH = r"C:\Users\荣\Desktop\TSR\TripoSR-main\output_aa4\0\mesh.obj"
 BLENDER_SCRIPT = r"C:\Users\荣\PycharmProjects\PythonProject4\blender_auto_import.py"
 OUT_BLEND = r"C:\Users\荣\Desktop\TSR\TripoSR-main\output_aa4\0\result.blend"
 
-subprocess.run([
+process = subprocess.Popen([
     BLENDER_EXE,
     "--background",
     "--python",
@@ -14,6 +14,12 @@ subprocess.run([
     "--",
     OBJ_PATH,
     OUT_BLEND
-], check=True)
+])
+
+
+process.wait()
+
+
+print("Blender 工程已生成：", OUT_BLEND)
 
 print("Blender 工程已生成：", OUT_BLEND)
