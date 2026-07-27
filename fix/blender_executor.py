@@ -2,6 +2,7 @@ from pathlib import Path
 
 from auto_repair import make_ai_code
 from backend_manager import run_command
+from blender_actions import action_plan_to_blender_code
 from config_loader import get_path, get_timeout
 
 
@@ -9,7 +10,14 @@ BLENDER_EXE = get_path("blender_exe")
 BLENDER_TIMEOUT = get_timeout("blender")
 
 
-def make_blender_runner(script_path, obj_path, blend_path, user_code, open_existing=False):
+def make_blender_runner(
+    script_path,
+    obj_path,
+    blend_path,
+    user_code,
+    open_existing=False,
+    structured_code="",
+):
     if open_existing:
         loader = f'bpy.ops.wm.open_mainfile(filepath=r"{blend_path}")'
     else:
@@ -101,6 +109,8 @@ def setup_level_camera_and_lights():
 cleanup_auto_artifacts()
 normalize_model_pose()
 
+{structured_code}
+
 {user_code}
 
 cleanup_auto_artifacts()
@@ -155,6 +165,7 @@ def run_blender_with_repair(
     attempt_label="Blender script attempt",
     repair_label="Blender script failed. Trying to repair...",
     max_script_attempts=3,
+    action_plan=None,
 ):
     def log(text):
         if log_callback:
@@ -164,8 +175,16 @@ def run_blender_with_repair(
     for attempt in range(1, max_script_attempts + 1):
         log(f"{attempt_label} {attempt}/{max_script_attempts} ...")
         user_code = make_ai_code(intent, error_message)
+        structured_code = action_plan_to_blender_code(action_plan)
         script_path = Path(blend_path).parent / f"agent_blender_script_attempt_{attempt}.py"
-        make_blender_runner(script_path, obj_path, blend_path, user_code, open_existing=open_existing)
+        make_blender_runner(
+            script_path,
+            obj_path,
+            blend_path,
+            user_code,
+            open_existing=open_existing,
+            structured_code=structured_code,
+        )
         try:
             run_command(
                 [BLENDER_EXE, "--background", "--python", script_path],

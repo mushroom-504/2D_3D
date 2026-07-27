@@ -16,6 +16,7 @@ env/
 output/
 outputs/
 output_*/
+data/
 *.blend
 *.blend1
 *.obj

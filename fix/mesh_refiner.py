@@ -179,7 +179,7 @@ def try_run_meshlab_cleanup(input_obj, output_obj, log_callback=None):
     if log_callback:
         log_callback("MeshLab cleanup: running local mesh cleanup.")
     try:
-        result = run_command(
+        run_command(
             command,
             capture_output=True,
             timeout=REFINEMENT_TIMEOUT,

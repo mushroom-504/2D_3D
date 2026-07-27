@@ -16,6 +16,7 @@ from backend_manager import (
     run_command,
 )
 from config_loader import get_path, get_timeout
+from config_loader import get_runtime
 
 
 BLENDER_EXE = get_path("blender_exe")
@@ -66,35 +67,74 @@ def _check_triposr():
 
 
 def _check_craftsman():
+    configured_mode = get_runtime("craftsman_mode", "remote_only")
     package = CRAFTSMAN_DIR / "craftsman" / "__init__.py"
     config = CRAFTSMAN_MODEL_DIR / "config.yaml"
     checkpoint = CRAFTSMAN_MODEL_DIR / "model.ckpt"
+    source_files_ok = package.is_file()
+    model_files_ok = (
+        config.is_file()
+        and checkpoint.is_file()
+        and checkpoint.stat().st_size >= MIN_CHECKPOINT_BYTES
+    )
     missing = [
         str(path)
         for path in (package, config, checkpoint)
         if not path.is_file()
     ]
-    if missing:
-        return _status(False, "Missing CraftsMan files: " + "; ".join(missing))
-    if checkpoint.stat().st_size < MIN_CHECKPOINT_BYTES:
-        return _status(False, f"CraftsMan checkpoint is incomplete: {checkpoint}")
+    local_ok = False
+    local_reason = ""
+    check_local = configured_mode in {"local_preferred", "local_only"}
+    if not check_local:
+        local_reason = "Skipped because CraftsMan is configured as a remote service."
+    elif missing:
+        local_reason = "Missing CraftsMan files: " + "; ".join(missing)
+    elif checkpoint.stat().st_size < MIN_CHECKPOINT_BYTES:
+        local_reason = f"CraftsMan checkpoint is incomplete: {checkpoint}"
+    else:
+        root_literal = json.dumps(str(CRAFTSMAN_DIR))
+        code = (
+            "import sys, torch; "
+            f"sys.path.insert(0, {root_literal}); "
+            "from craftsman import CraftsManPipeline; "
+            "assert torch.cuda.is_available(), 'CUDA is unavailable'; "
+            "print('torch=' + torch.__version__); "
+            "print('gpu=' + torch.cuda.get_device_name(0)); "
+            "print('CraftsManPipeline=OK')"
+        )
+        local_ok, local_reason = _probe_python(
+            CRAFTSMAN_PYTHON, code, cwd=CRAFTSMAN_DIR
+        )
 
-    root_literal = json.dumps(str(CRAFTSMAN_DIR))
-    code = (
-        "import sys, torch; "
-        f"sys.path.insert(0, {root_literal}); "
-        "from craftsman import CraftsManPipeline; "
-        "assert torch.cuda.is_available(), 'CUDA is unavailable'; "
-        "print('torch=' + torch.__version__); "
-        "print('gpu=' + torch.cuda.get_device_name(0)); "
-        "print('CraftsManPipeline=OK')"
-    )
-    ok, reason = _probe_python(CRAFTSMAN_PYTHON, code, cwd=CRAFTSMAN_DIR)
+    remote_ok = False
+    remote_reason = ""
+    try:
+        from craftsman_api_runner import check_health
+
+        remote_health = check_health(timeout=HEALTH_TIMEOUT)
+        remote_ok = remote_health.get("status") == "ok"
+        remote_reason = (
+            f"status={remote_health.get('status')}, "
+            f"model_loaded={remote_health.get('model_loaded')}, "
+            f"device={remote_health.get('device')}, busy={remote_health.get('busy')}"
+        )
+    except Exception as exc:
+        remote_reason = str(exc)
+
+    ok = remote_ok if configured_mode == "remote_only" else remote_ok or local_ok
+    reason = f"remote_service: {'OK' if remote_ok else remote_reason}"
+    if check_local:
+        reason += f"; local: {'OK' if local_ok else local_reason}"
     return _status(
         ok,
         reason,
-        source_files_ok=True,
-        model_files_ok=True,
+        experimental=False,
+        service_type="remote",
+        configured_mode=configured_mode,
+        remote_api_available=remote_ok,
+        local_available=local_ok,
+        source_files_ok=source_files_ok,
+        model_files_ok=model_files_ok,
         python=str(CRAFTSMAN_PYTHON),
         source=str(CRAFTSMAN_DIR),
         model=str(CRAFTSMAN_MODEL_DIR),
@@ -124,6 +164,34 @@ def _check_multiview():
     )
 
 
+def _check_configuration():
+    configured = {
+        "output_root": get_path("output_root"),
+        "work_root": get_path("work_root"),
+        "task_db": get_path("task_db"),
+        "blender_exe": BLENDER_EXE,
+        "triposr_python": TRIPOSR_PYTHON,
+        "triposr_dir": TRIPOSR_DIR,
+    }
+    problems = []
+    for name, path in configured.items():
+        path = Path(path)
+        if name == "task_db":
+            parent = path.parent
+            if not parent.exists():
+                problems.append(f"{name} parent missing: {parent}")
+        elif name in {"output_root", "work_root", "triposr_dir"}:
+            if not path.is_dir():
+                problems.append(f"{name} directory missing: {path}")
+        elif not path.is_file():
+            problems.append(f"{name} file missing: {path}")
+    return _status(
+        not problems,
+        "OK" if not problems else "; ".join(problems),
+        paths={name: str(path) for name, path in configured.items()},
+    )
+
+
 def check_backend_health():
     triposr = _check_triposr()
     craftsman = _check_craftsman()
@@ -143,6 +211,7 @@ def check_backend_health():
         BACKEND_CRAFTSMAN: craftsman,
         BACKEND_EXTERNAL_MULTIVIEW: multiview,
         "Blender": blender,
+        "Configuration": _check_configuration(),
     }
 
 
@@ -152,7 +221,7 @@ def format_health_report(health):
         marker = "[OK]" if info.get("available") else "[X]"
         reason = info.get("reason", "")
         if len(reason) > 300:
-            reason = reason[-300:]
+            reason = reason[:300] + "..."
         lines.append(f"{marker} {name}: {reason}")
     return "\n".join(lines)
 

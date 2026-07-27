@@ -14,13 +14,39 @@
     "meshlabserver_exe": "",
     "instant_meshes_exe": "",
     "history_file": "~/Desktop/3d_agent_history.jsonl",
-    "last_error_file": "~/Desktop/3d_agent_last_error.txt"
+    "last_error_file": "~/Desktop/3d_agent_last_error.txt",
+    "task_db": "../data/agent_tasks.sqlite3"
   },
   "runtime": {
     "default_backend": "TripoSR",
     "craftsman_device": "cuda",
     "craftsman_dtype": "float32",
+    "craftsman_mode": "remote_only",
+    "allow_backend_fallback": true,
     "terminate_grace_seconds": 5
+  },
+  "craftsman_api": {
+    "enabled": true,
+    "generate_url": "https://www.sanrenxietong.com/craftsman-api/generate",
+    "health_url": "https://www.sanrenxietong.com/craftsman-api/health",
+    "api_key_env": "CRAFTSMAN_API_KEY",
+    "steps": 50,
+    "seed": 0,
+    "guidance_scale": 5.0,
+    "octree_depth": 7,
+    "remove_background": true,
+    "foreground_ratio": 1.0
+  },
+  "vision_api": {
+    "enabled": true,
+    "api_key_env": "JIAORONG_API_KEY",
+    "base_url_env": "OPENAI_API_BASE",
+    "model_env": "OPENAI_VISION_MODEL",
+    "fallback_model_env": "AIDER_MODEL"
+  },
+  "quality": {
+    "render_resolution": 512,
+    "visual_similarity_warning_threshold": 20.0
   },
   "timeouts_seconds": {
     "default_process": 900,
@@ -30,6 +56,8 @@
     "blender": 600,
     "model_check": 180,
     "refinement": 300,
-    "health_probe": 30
+    "health_probe": 30,
+    "craftsman_api": 300,
+    "visual_render": 300
   }
 }

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from backend_manager import TaskCancelledError, run_command
 from config_loader import get_path, get_timeout
+from visual_quality import evaluate_visual_similarity
 
 
 BLENDER_EXE = get_path("blender_exe")
@@ -156,7 +157,7 @@ def _run_blender_model_check(result_dir, blend_path):
     _write_blender_check_script(script_path, blend_path, output_json)
 
     try:
-        completed = run_command(
+        run_command(
             [blender_exe, "--background", "--python", script_path],
             capture_output=True,
             timeout=MODEL_CHECK_TIMEOUT,
@@ -194,6 +195,9 @@ def check_generation_outputs(result_dir):
             "can_open_blender_file": False,
             "warnings": ["result.blend does not exist, so Blender open check was skipped."],
         }
+    visual_quality = {}
+    if expected["blend"].exists() and blender_check.get("can_open_blender_file"):
+        visual_quality = evaluate_visual_similarity(result_dir, expected["blend"])
 
     problems = []
     if missing:
@@ -212,6 +216,12 @@ def check_generation_outputs(result_dir):
         problems.append("Some mesh objects have no material.")
     if not reference_usage.get("looks_used"):
         problems.append("Reference images may not have been included in the plan.")
+    if visual_quality.get("below_threshold"):
+        problems.append(
+            "Rendered model has low visual similarity to the reference images: "
+            f"{visual_quality.get('overall_score')} < "
+            f"{visual_quality.get('warning_threshold')}."
+        )
 
     problems.extend(reference_usage.get("warnings", []))
     problems.extend(blender_check.get("warnings", []))
@@ -229,7 +239,10 @@ def check_generation_outputs(result_dir):
             "blender_can_open": blender_check.get("can_open_blender_file", False),
             "materials_present": not blender_check.get("materials_missing", False),
             "reference_views_used_in_plan": reference_usage.get("looks_used", False),
+            "visual_similarity": visual_quality.get("overall_score"),
+            "visual_similarity_available": visual_quality.get("available", False),
         },
         "reference_usage": reference_usage,
         "blender_check": blender_check,
+        "visual_quality": visual_quality,
     }

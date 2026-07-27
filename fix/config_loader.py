@@ -15,9 +15,32 @@ def get_base_dir():
 
 
 BASE_DIR = get_base_dir()
+PROJECT_DIR = BASE_DIR.parent
 CONFIG_PATH = Path(
     os.environ.get("IMAGE3D_CONFIG", str(BASE_DIR / "config.json"))
 ).expanduser().resolve()
+
+
+def _load_dotenv():
+    env_path = PROJECT_DIR / ".env"
+    if not env_path.is_file():
+        return
+    try:
+        lines = env_path.read_text(encoding="utf-8-sig").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+_load_dotenv()
 
 
 def _load_config():
@@ -39,6 +62,11 @@ CONFIG = _load_config()
 
 def get_value(section, key, default=None):
     return CONFIG.get(section, {}).get(key, default)
+
+
+def get_section(section):
+    value = CONFIG.get(section, {})
+    return value if isinstance(value, dict) else {}
 
 
 def get_runtime(key, default=None):

@@ -2,10 +2,12 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
-from config_loader import get_path, get_runtime, get_timeout
+from config_loader import get_path, get_runtime, get_section, get_timeout
+from task_manager import finish_stage, start_stage
 
 
 TRIPOSR_PYTHON = get_path("triposr_python")
@@ -18,7 +20,7 @@ MULTIVIEW_SCRIPT = get_path("multiview_script")
 WORK_ROOT = get_path("work_root")
 
 BACKEND_AUTO = "Auto"
-BACKEND_CRAFTSMAN = "CraftsMan"
+BACKEND_CRAFTSMAN = "CraftsMan 远程服务"
 BACKEND_TRIPOSR = "TripoSR"
 BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
 BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
@@ -31,6 +33,10 @@ MULTIVIEW_TIMEOUT = get_timeout("multiview")
 TERMINATE_GRACE_SECONDS = int(get_runtime("terminate_grace_seconds", 5))
 CRAFTSMAN_DEVICE = str(get_runtime("craftsman_device", "cuda"))
 CRAFTSMAN_DTYPE = str(get_runtime("craftsman_dtype", "float32"))
+CRAFTSMAN_MODE = str(get_runtime("craftsman_mode", "remote_only"))
+CRAFTSMAN_API_TIMEOUT = get_timeout("craftsman_api")
+CRAFTSMAN_API_CONFIG = get_section("craftsman_api")
+_last_backend_details = {}
 
 
 class TaskCancelledError(RuntimeError):
@@ -112,6 +118,11 @@ def run_command(
 ):
     raise_if_cancelled()
     timeout = timeout or DEFAULT_PROCESS_TIMEOUT
+    command_parts = [str(part) for part in cmd]
+    stage_token = start_stage(
+        f"command:{Path(command_parts[0]).name}",
+        command=command_parts,
+    )
     creationflags = 0
     start_new_session = False
     if os.name == "nt":
@@ -119,45 +130,55 @@ def run_command(
     else:
         start_new_session = True
 
-    process = subprocess.Popen(
-        [str(part) for part in cmd],
-        cwd=str(cwd) if cwd else None,
-        env=env,
-        text=capture_output,
-        encoding="utf-8" if capture_output else None,
-        errors="replace" if capture_output else None,
-        stdout=subprocess.PIPE if capture_output else None,
-        stderr=subprocess.PIPE if capture_output else None,
-        creationflags=creationflags,
-        start_new_session=start_new_session,
-    )
+    try:
+        process = subprocess.Popen(
+            command_parts,
+            cwd=str(cwd) if cwd else None,
+            env=env,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=creationflags,
+            start_new_session=start_new_session,
+        )
+    except Exception as exc:
+        finish_stage(stage_token, "failed", error=str(exc))
+        raise
     _set_current_process(process)
     stdout = None
     stderr = None
     try:
-        if capture_output:
-            stdout, stderr = process.communicate(timeout=timeout)
-        else:
-            process.wait(timeout=timeout)
+        stdout, stderr = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired as exc:
         _terminate_process_tree(process)
-        if capture_output:
-            stdout, stderr = process.communicate()
-        raise TimeoutError(
+        stdout, stderr = process.communicate()
+        error = (
             f"Command timed out after {timeout} seconds: {' '.join(map(str, cmd))}"
-        ) from exc
+        )
+        finish_stage(stage_token, "failed", stdout, stderr, error)
+        raise TimeoutError(error) from exc
     finally:
         _clear_current_process(process)
 
     if is_cancel_requested():
+        finish_stage(stage_token, "cancelled", stdout, stderr, "Task cancelled by user.")
         raise TaskCancelledError("Task cancelled by user.")
     if process.returncode != 0:
-        detail = ""
-        if capture_output:
-            detail = f"\nstdout:\n{(stdout or '')[-2000:]}\nstderr:\n{(stderr or '')[-2000:]}"
-        raise RuntimeError(
-            f"Command failed with code {process.returncode}: {' '.join(map(str, cmd))}{detail}"
+        detail = f"\nstdout:\n{(stdout or '')[-2000:]}\nstderr:\n{(stderr or '')[-2000:]}"
+        error = (
+            f"Command failed with code {process.returncode}: "
+            f"{' '.join(map(str, cmd))}{detail}"
         )
+        finish_stage(stage_token, "failed", stdout, stderr, error)
+        raise RuntimeError(error)
+    finish_stage(stage_token, "completed", stdout, stderr)
+    if not capture_output:
+        if stdout:
+            print(stdout, end="")
+        if stderr:
+            print(stderr, end="", file=sys.stderr)
     return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
 
 
@@ -203,42 +224,104 @@ def run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=384):
 
 
 def run_craftsman_backend(safe_input, result_dir):
-    if not CRAFTSMAN_PYTHON.is_file():
-        raise RuntimeError(f"CraftsMan Python environment not found: {CRAFTSMAN_PYTHON}")
-    if not (CRAFTSMAN_DIR / "craftsman" / "__init__.py").is_file():
-        raise RuntimeError(f"CraftsMan source package not found: {CRAFTSMAN_DIR}")
-    if not (CRAFTSMAN_MODEL_DIR / "config.yaml").is_file():
-        raise RuntimeError(f"CraftsMan config missing: {CRAFTSMAN_MODEL_DIR / 'config.yaml'}")
-    if not (CRAFTSMAN_MODEL_DIR / "model.ckpt").is_file():
-        raise RuntimeError(f"CraftsMan checkpoint missing: {CRAFTSMAN_MODEL_DIR / 'model.ckpt'}")
-
-    runner = Path(__file__).with_name("craftsman_runner.py")
+    global _last_backend_details
+    errors = []
     output_dir = Path(result_dir) / "craftsman_output"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_obj = output_dir / "mesh.obj"
-    run_command(
-        [
-            CRAFTSMAN_PYTHON,
-            runner,
-            "--input",
-            safe_input,
-            "--output",
-            output_obj,
-            "--craftsman-root",
-            CRAFTSMAN_DIR,
-            "--model-dir",
-            CRAFTSMAN_MODEL_DIR,
-            "--device",
-            CRAFTSMAN_DEVICE,
-            "--dtype",
-            CRAFTSMAN_DTYPE,
-        ],
-        cwd=CRAFTSMAN_DIR,
-        timeout=CRAFTSMAN_TIMEOUT,
+
+    def run_remote():
+        runner = Path(__file__).with_name("craftsman_api_runner.py")
+        if not CRAFTSMAN_API_CONFIG.get("enabled", False):
+            raise RuntimeError("CraftsMan remote API is disabled in config.json.")
+        run_command(
+            [
+                TRIPOSR_PYTHON,
+                runner,
+                "--input",
+                safe_input,
+                "--output",
+                output_obj,
+                "--timeout",
+                str(CRAFTSMAN_API_TIMEOUT),
+            ],
+            cwd=Path(__file__).parent,
+            timeout=CRAFTSMAN_API_TIMEOUT + 30,
+        )
+        metadata_path = output_obj.with_suffix(".api.json")
+        metadata = {}
+        if metadata_path.is_file():
+            import json
+
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        _last_backend_details = {"engine": "remote_api", **metadata}
+        return output_obj
+
+    def run_local():
+        global _last_backend_details
+        if not CRAFTSMAN_PYTHON.is_file():
+            raise RuntimeError(f"CraftsMan Python environment not found: {CRAFTSMAN_PYTHON}")
+        if not (CRAFTSMAN_DIR / "craftsman" / "__init__.py").is_file():
+            raise RuntimeError(f"CraftsMan source package not found: {CRAFTSMAN_DIR}")
+        if not (CRAFTSMAN_MODEL_DIR / "config.yaml").is_file():
+            raise RuntimeError(
+                f"CraftsMan config missing: {CRAFTSMAN_MODEL_DIR / 'config.yaml'}"
+            )
+        if not (CRAFTSMAN_MODEL_DIR / "model.ckpt").is_file():
+            raise RuntimeError(
+                f"CraftsMan checkpoint missing: {CRAFTSMAN_MODEL_DIR / 'model.ckpt'}"
+            )
+
+        runner = Path(__file__).with_name("craftsman_runner.py")
+        run_command(
+            [
+                CRAFTSMAN_PYTHON,
+                runner,
+                "--input",
+                safe_input,
+                "--output",
+                output_obj,
+                "--craftsman-root",
+                CRAFTSMAN_DIR,
+                "--model-dir",
+                CRAFTSMAN_MODEL_DIR,
+                "--device",
+                CRAFTSMAN_DEVICE,
+                "--dtype",
+                CRAFTSMAN_DTYPE,
+            ],
+            cwd=CRAFTSMAN_DIR,
+            timeout=CRAFTSMAN_TIMEOUT,
+        )
+        _last_backend_details = {"engine": "local_craftsman"}
+        return output_obj
+
+    runners = (
+        [run_remote, run_local]
+        if CRAFTSMAN_MODE == "remote_preferred"
+        else [run_local, run_remote]
     )
-    if not output_obj.is_file() or output_obj.stat().st_size == 0:
-        raise RuntimeError(f"CraftsMan did not create an OBJ: {output_obj}")
-    return output_obj
+    if CRAFTSMAN_MODE == "remote_only":
+        runners = [run_remote]
+    elif CRAFTSMAN_MODE == "local_only":
+        runners = [run_local]
+
+    for runner in runners:
+        try:
+            result = runner()
+            if not result.is_file() or result.stat().st_size == 0:
+                raise RuntimeError(f"CraftsMan did not create an OBJ: {result}")
+            return result
+        except TaskCancelledError:
+            raise
+        except Exception as exc:
+            errors.append(f"{runner.__name__}: {exc}")
+
+    raise RuntimeError("CraftsMan failed in every configured mode:\n" + "\n".join(errors))
+
+
+def get_last_backend_details():
+    return dict(_last_backend_details)
 
 
 def run_triposr_fusion_backend(image_paths_for_agent, result_dir, mc_resolution=384):

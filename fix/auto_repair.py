@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from config_loader import get_section
+
 
 MAX_REPAIR_ATTEMPTS = 3
 
@@ -158,13 +160,22 @@ apply_request()
 
 
 def make_ai_code(intent, error_message=None):
-    api_key = os.environ.get("OPENAI_API_KEY")
+    config = get_section("vision_api")
+    key_env = str(config.get("api_key_env", "OPENAI_API_KEY"))
+    api_key = os.environ.get(key_env, "").strip() or os.environ.get(
+        "OPENAI_API_KEY", ""
+    ).strip()
     if not api_key:
         return make_rule_based_code(intent)
 
     from openai import OpenAI
 
-    client = OpenAI(api_key=api_key)
+    base_env = str(config.get("base_url_env", "OPENAI_API_BASE"))
+    base_url = os.environ.get(base_env, "").strip()
+    client_kwargs = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    client = OpenAI(**client_kwargs)
     repair_text = ""
     if error_message:
         repair_text = f"\nThe previous Blender script failed with this error:\n{error_message}\nFix it."
@@ -193,8 +204,17 @@ Requirements:
 {repair_text}
 """
 
+    model = (
+        os.environ.get("OPENAI_CODE_MODEL", "").strip()
+        or os.environ.get(
+            str(config.get("fallback_model_env", "AIDER_MODEL")), ""
+        ).strip()
+        or "gpt-4o-mini"
+    )
+    if "/" in model:
+        model = model.split("/", 1)[1]
     response = client.chat.completions.create(
-        model=os.environ.get("OPENAI_CODE_MODEL", "gpt-4o-mini"),
+        model=model,
         messages=[
             {"role": "system", "content": "Return only valid Blender Python code."},
             {"role": "user", "content": prompt},

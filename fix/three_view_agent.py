@@ -5,6 +5,7 @@ import os
 import re
 from pathlib import Path
 
+from config_loader import get_section
 
 VIEW_LABELS = {
     "front": "front view",
@@ -82,7 +83,7 @@ def local_analyze(user_request, image_paths):
                 "image": path,
                 "note": (
                     "The image is available and will be saved as a named reference. "
-                    "Actual visual comparison and reading drawn annotations require OPENAI_API_KEY."
+                    "Rule mode cannot compare pixels or read drawn annotations."
                 ),
             }
             for view, path in images.items()
@@ -101,19 +102,62 @@ def local_analyze(user_request, image_paths):
             "Apply smoothing, weighted normals, bevels, materials, lights, and a level camera.",
         ],
         "uncertainty": [
-            "Local mode cannot visually compare image contents.",
-            "Set OPENAI_API_KEY to make the agent inspect front/back differences and image annotations.",
+            "RULE MODE: image contents are not visually understood or compared.",
+            "Configure a vision-capable API key/model to inspect differences and image annotations.",
         ],
+    }
+
+
+def get_vision_api_settings():
+    config = get_section("vision_api")
+    key_env = str(config.get("api_key_env", "OPENAI_API_KEY"))
+    api_key = os.environ.get(key_env, "").strip() or os.environ.get(
+        "OPENAI_API_KEY", ""
+    ).strip()
+    base_env = str(config.get("base_url_env", "OPENAI_API_BASE"))
+    base_url = os.environ.get(base_env, "").strip()
+    model_env = str(config.get("model_env", "OPENAI_VISION_MODEL"))
+    fallback_env = str(config.get("fallback_model_env", "AIDER_MODEL"))
+    model = os.environ.get(model_env, "").strip() or os.environ.get(
+        fallback_env, ""
+    ).strip()
+    if "/" in model:
+        model = model.split("/", 1)[1]
+    return {
+        "enabled": bool(config.get("enabled", True)),
+        "api_key": api_key,
+        "base_url": base_url,
+        "model": model or "gpt-4o",
+        "key_env": key_env,
+    }
+
+
+def get_analysis_capability():
+    settings = get_vision_api_settings()
+    if settings["enabled"] and settings["api_key"]:
+        return {
+            "mode": "vision_api",
+            "label": f"视觉模型模式：{settings['model']}",
+            "can_see_images": True,
+        }
+    return {
+        "mode": "local_rules",
+        "label": "规则模式：不具备图片内容理解能力",
+        "can_see_images": False,
     }
 
 
 def openai_vision_analyze(user_request, image_paths):
     from openai import OpenAI
 
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    settings = get_vision_api_settings()
+    client_kwargs = {"api_key": settings["api_key"]}
+    if settings["base_url"]:
+        client_kwargs["base_url"] = settings["base_url"]
+    client = OpenAI(**client_kwargs)
     content = [
         {
-            "type": "input_text",
+            "type": "text",
             "text": (
                 "You are a multi-view 3D modeling assistant for Blender.\n"
                 "The user may upload front, back, top, bottom, left, and right reference images.\n"
@@ -125,9 +169,14 @@ def openai_vision_analyze(user_request, image_paths):
                 "Always ask Blender to straighten and center the model.\n"
                 "Return ONLY valid JSON. Do not use markdown.\n\n"
                 "Required JSON keys:\n"
-                "summary, available_views, important_differences_between_views, dimensions, view_analysis, modeling_plan, blender_modification_goals, orientation_goals, uncertainty.\n\n"
+                "summary, available_views, important_differences_between_views, dimensions, view_analysis, modeling_plan, blender_modification_goals, orientation_goals, structured_actions, uncertainty.\n\n"
                 "Dimension object format:\n"
                 "{name, value, unit, source_view, uncertain, note}\n\n"
+                "structured_actions must be a JSON array. Allowed action types:\n"
+                "cleanup_artifacts, center_ground, smooth, ensure_material,\n"
+                "bevel {width, segments}, scale_axes {scale:[x,y,z]},\n"
+                "add_primitive {primitive:cube|sphere|cylinder, name, location:[x,y,z], scale:[x,y,z], color:[r,g,b]}.\n"
+                "Only add primitives when a missing simple part is clearly visible and its position is sufficiently certain.\n\n"
                 f"User request:\n{user_request or ''}"
             ),
         }
@@ -136,24 +185,26 @@ def openai_vision_analyze(user_request, image_paths):
     for view, path in existing_images(image_paths).items():
         content.append(
             {
-                "type": "input_text",
+                "type": "text",
                 "text": f"The next image is the {VIEW_LABELS.get(view, view)}. Analyze this exact view and compare it with the other uploaded views.",
             }
         )
         content.append(
             {
-                "type": "input_image",
-                "image_url": read_image_as_data_url(path),
-                "detail": "high",
+                "type": "image_url",
+                "image_url": {
+                    "url": read_image_as_data_url(path),
+                    "detail": "high",
+                },
             }
         )
 
-    model = os.environ.get("OPENAI_VISION_MODEL", "gpt-4o")
-    response = client.responses.create(
-        model=model,
-        input=[{"role": "user", "content": content}],
+    response = client.chat.completions.create(
+        model=settings["model"],
+        messages=[{"role": "user", "content": content}],
+        temperature=0,
     )
-    text = response.output_text.strip()
+    text = response.choices[0].message.content.strip()
 
     try:
         return json.loads(text)
@@ -168,7 +219,8 @@ def openai_vision_analyze(user_request, image_paths):
 
 
 def analyze_three_view_request(user_request, image_paths):
-    if not os.environ.get("OPENAI_API_KEY"):
+    capability = get_analysis_capability()
+    if capability["mode"] == "local_rules":
         return local_analyze(user_request, image_paths)
 
     try:
@@ -178,8 +230,8 @@ def analyze_three_view_request(user_request, image_paths):
             return analysis
     except Exception as exc:
         analysis = local_analyze(user_request, image_paths)
-        analysis["mode"] = "local_rules_after_openai_error"
-        analysis["openai_error"] = str(exc)
+        analysis["mode"] = "local_rules_after_vision_error"
+        analysis["vision_error"] = str(exc)
         return analysis
 
     return local_analyze(user_request, image_paths)
