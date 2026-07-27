@@ -1,31 +1,25 @@
 import os
 import shutil
-import subprocess
 from pathlib import Path
 
+from backend_manager import TaskCancelledError, run_command
+from config_loader import get_optional_path, get_timeout
 
-DESKTOP = Path.home() / "Desktop"
+
+MESHLABSERVER_EXE = get_optional_path("meshlabserver_exe")
+INSTANT_MESHES_EXE = get_optional_path("instant_meshes_exe")
+REFINEMENT_TIMEOUT = get_timeout("refinement")
 
 TOOL_HINTS = {
     "MeshLab": {
         "purpose": "清理、修复、平滑、简化 TripoSR 生成的网格。",
         "env": "MESHLABSERVER_EXE",
-        "paths": [
-            r"C:\Program Files\VCG\MeshLab\meshlabserver.exe",
-            r"C:\Program Files\MeshLab\meshlabserver.exe",
-            str(DESKTOP / "MeshLab" / "meshlabserver.exe"),
-        ],
+        "paths": [str(MESHLABSERVER_EXE)] if MESHLABSERVER_EXE else [],
     },
     "Instant Meshes": {
         "purpose": "把杂乱三角面重新拓扑成更干净的四边面，适合后续在 Blender 里精修。",
         "env": "INSTANT_MESHES_EXE",
-        "paths": [
-            r"C:\Program Files\Instant Meshes\Instant Meshes.exe",
-            r"C:\Program Files\InstantMeshes\Instant Meshes.exe",
-            str(DESKTOP / "Instant Meshes" / "Instant Meshes.exe"),
-            str(DESKTOP / "InstantMeshes" / "Instant Meshes.exe"),
-            str(DESKTOP / "instant-meshes" / "Instant Meshes.exe"),
-        ],
+        "paths": [str(INSTANT_MESHES_EXE)] if INSTANT_MESHES_EXE else [],
     },
     "MeshLib": {
         "purpose": "用 Python 做网格修复、平滑、布尔、简化、距离计算。",
@@ -134,7 +128,7 @@ def write_refinement_report(result_dir, model_files=None):
             "",
             "Instant Meshes 便携版说明：",
             "如果你已经安装但这里显示未找到，可以把它的 exe 路径写入环境变量 INSTANT_MESHES_EXE。",
-            "例如：INSTANT_MESHES_EXE=C:\\你的路径\\Instant Meshes.exe",
+            "请在 config.json 的 paths.instant_meshes_exe 中填写程序路径。",
             "",
             "注意：",
             "这些工具只能精修已有模型，不能凭空生成类似付费 3D 大模型那种完整角色语义结构。",
@@ -184,16 +178,17 @@ def try_run_meshlab_cleanup(input_obj, output_obj, log_callback=None):
     ]
     if log_callback:
         log_callback("MeshLab cleanup: running local mesh cleanup.")
-    result = subprocess.run(
-        command,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-    )
-    if result.returncode != 0:
+    try:
+        result = run_command(
+            command,
+            capture_output=True,
+            timeout=REFINEMENT_TIMEOUT,
+        )
+    except TaskCancelledError:
+        raise
+    except Exception as exc:
         if log_callback:
             log_callback("MeshLab cleanup failed, keeping original model.")
-            log_callback((result.stderr or result.stdout)[:1200])
+            log_callback(str(exc)[:1200])
         return None
     return output_obj

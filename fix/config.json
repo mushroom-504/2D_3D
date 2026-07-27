@@ -1,21 +1,35 @@
 {
-    "paths": {
-
-        "triposr_python": "D:/conda/envs/triposr/python.exe",
-        "triposr_dir": "../TripoSR-main",
-
-        "craftsman_python": "D:/conda/envs/CraftsMan/python.exe",
-        "craftsman_dir": "../CraftsMan",
-
-        "blender_exe": "D:/software/Blender/blender.exe",
-
-        "work_root": "C:/TSR_Work",
-
-        "craftsman_model": "D:/CraftsMan_models/craftsman-DoraVAE"
-    },
-
-    "runtime": {
-        "default_backend": "TripoSR",
-        "device": "cuda"
-    }
+  "paths": {
+    "triposr_python": "D:/conda/envs/triposr/python.exe",
+    "triposr_dir": "../TripoSR-main",
+    "craftsman_python": "D:/conda/envs/CraftsMan/python.exe",
+    "craftsman_dir": "../CraftsMan3D-main/CraftsMan3D-main",
+    "craftsman_model": "D:/CraftsMan_models/craftsman-DoraVAE",
+    "blender_exe": "C:/Program Files/Blender Foundation/Blender 4.4/blender.exe",
+    "work_root": "C:/TSR_Work",
+    "output_root": "~/Desktop",
+    "mast3r_python": "D:/conda/envs/mast3r/python.exe",
+    "mast3r_dir": "C:/Users/荣/Desktop/mast3r-main/mast3r-main",
+    "multiview_script": "mast3r_multiview_runner.py",
+    "meshlabserver_exe": "",
+    "instant_meshes_exe": "",
+    "history_file": "~/Desktop/3d_agent_history.jsonl",
+    "last_error_file": "~/Desktop/3d_agent_last_error.txt"
+  },
+  "runtime": {
+    "default_backend": "TripoSR",
+    "craftsman_device": "cuda",
+    "craftsman_dtype": "float32",
+    "terminate_grace_seconds": 5
+  },
+  "timeouts_seconds": {
+    "default_process": 900,
+    "triposr": 900,
+    "craftsman": 1800,
+    "multiview": 1800,
+    "blender": 600,
+    "model_check": 180,
+    "refinement": 300,
+    "health_probe": 30
+  }
 }

@@ -1,9 +1,12 @@
 import json
-import subprocess
 from pathlib import Path
 
+from backend_manager import TaskCancelledError, run_command
+from config_loader import get_path, get_timeout
 
-BLENDER_EXE = r"C:\Program Files\Blender Foundation\Blender 4.4\blender.exe"
+
+BLENDER_EXE = get_path("blender_exe")
+MODEL_CHECK_TIMEOUT = get_timeout("model_check")
 
 
 def _expected_files(result_dir):
@@ -152,20 +155,18 @@ def _run_blender_model_check(result_dir, blend_path):
     output_json = result_dir / "model_check_blender.json"
     _write_blender_check_script(script_path, blend_path, output_json)
 
-    completed = subprocess.run(
-        [str(blender_exe), "--background", "--python", str(script_path)],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        timeout=120,
-    )
-    if completed.returncode != 0:
+    try:
+        completed = run_command(
+            [blender_exe, "--background", "--python", script_path],
+            capture_output=True,
+            timeout=MODEL_CHECK_TIMEOUT,
+        )
+    except TaskCancelledError:
+        raise
+    except Exception as exc:
         return {
             "can_open_blender_file": False,
-            "warnings": ["Blender model check failed."],
-            "stdout": completed.stdout[-2000:],
-            "stderr": completed.stderr[-2000:],
+            "warnings": [f"Blender model check failed: {exc}"],
         }
 
     if not output_json.exists():

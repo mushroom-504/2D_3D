@@ -3,8 +3,9 @@ import shutil
 import sys
 from pathlib import Path
 
+from config_loader import get_path
 
-MAST3R_ROOT = Path(r"C:\Users\荣\Desktop\mast3r-main\mast3r-main")
+MAST3R_ROOT = get_path("mast3r_dir")
 
 
 def collect_images(args):

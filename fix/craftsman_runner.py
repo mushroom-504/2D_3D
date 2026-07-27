@@ -17,6 +17,8 @@ def parse_args():
     parser.add_argument("--model-dir", required=True, help="Folder containing config.yaml and model.ckpt")
     parser.add_argument("--steps", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--dtype", choices=["float32", "bfloat16"], default="float32")
     return parser.parse_args()
 
 
@@ -51,13 +53,13 @@ def main():
     except ImportError as exc:
         raise RuntimeError(
             "PyTorch is not installed in the CraftsMan Conda environment. "
-            "Install the CraftsMan dependencies in D:\\conda\\envs\\CraftsMan first."
+            f"Install the CraftsMan dependencies in this environment: {sys.executable}"
         ) from exc
-    # if not torch.cuda.is_available():
-    #     raise RuntimeError(
-    #         "CraftsMan requires a CUDA-capable NVIDIA GPU, but torch.cuda.is_available() is False. "
-    #         "Check the NVIDIA driver and install a CUDA build of PyTorch in the CraftsMan environment."
-    #     )
+    if args.device.startswith("cuda") and not torch.cuda.is_available():
+        raise RuntimeError(
+            "CraftsMan requires a CUDA-capable NVIDIA GPU, but torch.cuda.is_available() is False. "
+            "Check the NVIDIA driver and install a CUDA build of PyTorch in the CraftsMan environment."
+        )
 
     try:
         from craftsman import CraftsManPipeline
@@ -67,11 +69,15 @@ def main():
             f"Original error: {exc}"
         ) from exc
 
-    print(f"Loading CraftsMan model on CPU: {model_dir}", flush=True)
+    dtype = torch.bfloat16 if args.dtype == "bfloat16" else torch.float32
+    print(
+        f"Loading CraftsMan model on {args.device} with {args.dtype}: {model_dir}",
+        flush=True,
+    )
     pipeline = CraftsManPipeline.from_pretrained(
         str(model_dir),
-        device="cpu",
-        torch_dtype=torch.float32,
+        device=args.device,
+        torch_dtype=dtype,
     )
     print(f"Generating mesh from: {input_path}", flush=True)
     result = pipeline(

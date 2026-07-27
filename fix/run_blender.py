@@ -1,25 +1,27 @@
-import subprocess
+import argparse
+from pathlib import Path
 
-BLENDER_EXE = r"C:\Program Files\Blender Foundation\Blender 4.4\blender.exe"
-
-OBJ_PATH = r"C:\Users\荣\Desktop\TSR\TripoSR-main\output_aa4\0\mesh.obj"
-BLENDER_SCRIPT = r"C:\Users\荣\PycharmProjects\PythonProject4\blender_auto_import.py"
-OUT_BLEND = r"C:\Users\荣\Desktop\TSR\TripoSR-main\output_aa4\0\result.blend"
-
-process = subprocess.Popen([
-    BLENDER_EXE,
-    "--background",
-    "--python",
-    BLENDER_SCRIPT,
-    "--",
-    OBJ_PATH,
-    OUT_BLEND
-])
+from backend_manager import run_command
+from config_loader import get_path, get_timeout
 
 
-process.wait()
+def main():
+    parser = argparse.ArgumentParser(description="Run a Blender Python script with configured Blender.")
+    parser.add_argument("--script", type=Path, required=True)
+    parser.add_argument("script_args", nargs="*")
+    args = parser.parse_args()
+
+    blender = get_path("blender_exe")
+    if not blender.is_file():
+        raise SystemExit(f"Blender executable not found: {blender}")
+    if not args.script.is_file():
+        raise SystemExit(f"Blender script not found: {args.script}")
+
+    command = [blender, "--background", "--python", args.script]
+    if args.script_args:
+        command.extend(["--", *args.script_args])
+    run_command(command, timeout=get_timeout("blender"))
 
 
-print("Blender 工程已生成：", OUT_BLEND)
-
-print("Blender 工程已生成：", OUT_BLEND)
+if __name__ == "__main__":
+    main()

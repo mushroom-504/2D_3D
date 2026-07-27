@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 import shutil
 import threading
 from datetime import datetime
@@ -12,13 +13,16 @@ from PIL import Image, ImageTk
 
 from agent_brain import analyze_request, build_modeling_intent, create_modeling_plan, save_agent_analysis
 from auto_repair import MAX_REPAIR_ATTEMPTS, analyze_error_message, build_repair_intent
+from backend_health import check_backend_health, format_health_report
 from backend_manager import (
     BACKEND_AUTO,
     BACKEND_CRAFTSMAN,
     BACKEND_EXTERNAL_MULTIVIEW,
     BACKEND_TRIPOSR,
     BACKEND_TRIPOSR_FUSION,
+    TaskCancelledError,
     WORK_ROOT,
+    clear_cancel_request,
     copy_reference_images,
     run_craftsman_backend,
     run_external_multiview_backend,
@@ -30,9 +34,11 @@ from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
 from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
 from project_history import append_history, write_error_report
+from config_loader import get_path, get_runtime
 
 
-DESKTOP = Path.home() / "Desktop"
+DESKTOP = get_path("output_root")
+DEFAULT_BACKEND = str(get_runtime("default_backend", BACKEND_TRIPOSR))
 VIEW_KEYS = ["back", "top", "bottom", "left", "right"]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
@@ -136,14 +142,12 @@ TEXT = {
 }
 
 def cancel_task():
-
-    log("正在终止任务...")
-
+    if not is_running:
+        return
+    log("正在终止当前任务及其子进程...")
+    cancel_button.config(state="disabled")
     stop_current_process()
-
-    log("任务已取消")
-
-    set_busy(False)
+    log("已发送取消请求，正在等待任务线程退出。")
 
 def tr(key):
     return TEXT[LANG][key]
@@ -176,6 +180,8 @@ def set_busy(running):
     modify_button.config(state=state)
     choose_main_button.config(state=state)
     backend_box.config(state="disabled" if running else "readonly")
+    health_button.config(state="disabled" if running else "normal")
+    cancel_button.config(state="normal" if running else "disabled")
     for key in VIEW_KEYS:
         view_choose_buttons[key].config(state=state)
         view_clear_buttons[key].config(state=state)
@@ -194,9 +200,13 @@ def run_in_worker(task):
         messagebox.showwarning(tr("error"), "当前已经有任务在运行，请等待完成。")
         return
 
+    clear_cancel_request()
+
     def worker():
         try:
             task()
+        except TaskCancelledError:
+            log("任务已取消。")
         finally:
             root.after(0, lambda: set_busy(False))
 
@@ -218,30 +228,51 @@ def run_backend_with_auto_repair(selected_backend, image_paths_for_agent, result
     current_backend = selected_backend
     triposr_resolutions = [384, 256, 128]
     last_error = None
+    fallback_reason = ""
 
     for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
         try:
             log(f"Backend attempt {attempt}/{MAX_REPAIR_ATTEMPTS}: {current_backend}")
             if current_backend == BACKEND_CRAFTSMAN:
-                log("CraftsMan CPU mode is starting. This can take a long time.")
-                return run_craftsman_backend(safe_input, result_dir), BACKEND_CRAFTSMAN
+                log("CraftsMan is starting with the device configured in config.json.")
+                return (
+                    run_craftsman_backend(safe_input, result_dir),
+                    BACKEND_CRAFTSMAN,
+                    fallback_reason,
+                )
 
             if current_backend == BACKEND_EXTERNAL_MULTIVIEW:
                 log("External Multi-View may take several minutes on CPU. The window will stay responsive while it runs.")
-                return run_external_multiview_backend(image_paths_for_agent, result_dir), current_backend
+                return (
+                    run_external_multiview_backend(image_paths_for_agent, result_dir),
+                    current_backend,
+                    fallback_reason,
+                )
 
             if current_backend == BACKEND_TRIPOSR_FUSION:
                 resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
                 log(f"TripoSR Fusion mc-resolution: {resolution}")
-                return run_triposr_fusion_backend(
-                    image_paths_for_agent,
-                    result_dir,
-                    mc_resolution=resolution,
-                ), BACKEND_TRIPOSR_FUSION
+                return (
+                    run_triposr_fusion_backend(
+                        image_paths_for_agent,
+                        result_dir,
+                        mc_resolution=resolution,
+                    ),
+                    BACKEND_TRIPOSR_FUSION,
+                    fallback_reason,
+                )
 
             resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
             log(f"TripoSR mc-resolution: {resolution}")
-            return run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=resolution), BACKEND_TRIPOSR
+            return (
+                run_triposr_backend(
+                    safe_input, triposr_output_dir, mc_resolution=resolution
+                ),
+                BACKEND_TRIPOSR,
+                fallback_reason,
+            )
+        except TaskCancelledError:
+            raise
         except Exception as exc:
             last_error = exc
             report = analyze_error_message(str(exc))
@@ -255,12 +286,19 @@ def run_backend_with_auto_repair(selected_backend, image_paths_for_agent, result
                 break
 
             if current_backend == BACKEND_CRAFTSMAN:
+                fallback_reason = f"CraftsMan failed: {exc}"
                 current_backend = BACKEND_TRIPOSR
                 log("Auto-repair: CraftsMan failed, falling back to TripoSR.")
             elif current_backend == BACKEND_EXTERNAL_MULTIVIEW:
+                fallback_reason = f"External Multi-View failed: {exc}"
                 current_backend = BACKEND_TRIPOSR
                 log("Auto-repair: falling back to TripoSR for the next attempt.")
             else:
+                if not fallback_reason:
+                    fallback_reason = (
+                        f"{current_backend} failed at the original resolution and "
+                        f"was retried with safer settings: {exc}"
+                    )
                 log("Auto-repair: retrying TripoSR with safer lower-resolution settings.")
 
     raise RuntimeError(f"Backend auto-repair failed after {MAX_REPAIR_ATTEMPTS} attempts.\nLast error:\n{last_error}")
@@ -352,7 +390,7 @@ def generate_3d(image_path, intent, ref_map=None):
     set_progress(30)
 
     set_progress(35, tr("step2"))
-    obj_path, actual_backend = run_backend_with_auto_repair(
+    obj_path, actual_backend, fallback_reason = run_backend_with_auto_repair(
         selected_backend,
         image_paths_for_agent,
         result_dir,
@@ -361,6 +399,28 @@ def generate_3d(image_path, intent, ref_map=None):
         intent,
     )
     selected_backend = actual_backend
+    execution = {
+        "requested_backend": requested_backend,
+        "planned_backend": plan["backend"],
+        "actual_backend": actual_backend,
+        "fallback_reason": fallback_reason,
+    }
+    (result_dir / "backend_execution.json").write_text(
+        json.dumps(execution, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    plan["actual_backend"] = actual_backend
+    plan["fallback_reason"] = fallback_reason
+    analysis["backend_execution"] = execution
+    analysis_path = save_agent_analysis(result_dir, analysis)
+    status_text = f"请求：{requested_backend} | 实际：{actual_backend}"
+    if fallback_reason:
+        short_reason = fallback_reason.splitlines()[0][:180]
+        status_text += f" | 降级原因：{short_reason}"
+    root.after(0, lambda text=status_text: backend_status_var.set(text))
+    log(f"Actual backend: {actual_backend}")
+    if fallback_reason:
+        log(f"Fallback reason: {fallback_reason}")
     set_progress(70)
 
     final_blend = result_dir / "result.blend"
@@ -421,6 +481,8 @@ def generate_3d(image_path, intent, ref_map=None):
             "action": "generate",
             "backend": selected_backend,
             "requested_backend": requested_backend,
+            "actual_backend": actual_backend,
+            "fallback_reason": fallback_reason,
             "plan": plan,
             "result_dir": str(result_dir),
             "blend": str(final_blend),
@@ -695,6 +757,8 @@ def start_generate():
             set_progress(0)
             root.after(0, lambda: output_box.delete("1.0", tk.END))
             generate_3d(image_path, intent, ref_map)
+        except TaskCancelledError:
+            log("生成任务已取消。")
         except Exception as e:
             report = write_error_report(e)
             log(str(e))
@@ -714,6 +778,8 @@ def start_modify():
         try:
             set_progress(0)
             modify_current_model(intent)
+        except TaskCancelledError:
+            log("修改任务已取消。")
         except Exception as e:
             report = write_error_report(e)
             log(str(e))
@@ -721,6 +787,23 @@ def start_modify():
             show_error(tr("failed"), f"{e}\n\nError report:\n{report}")
 
     run_in_worker(task)
+
+
+def perform_backend_health_check(show_dialog=False):
+    set_progress(0, "正在进行后端启动体检...")
+    health = check_backend_health()
+    report = format_health_report(health)
+    log(report)
+    available = [name for name, info in health.items() if info.get("available")]
+    summary = "可用：" + (", ".join(available) if available else "无")
+    root.after(0, lambda: backend_status_var.set(summary))
+    set_progress(0)
+    if show_dialog:
+        show_info("后端体检", report)
+
+
+def start_backend_health_check(show_dialog=True):
+    run_in_worker(lambda: perform_backend_health_check(show_dialog=show_dialog))
 
 
 def open_result_folder():
@@ -748,6 +831,8 @@ def apply_language():
     modify_button.config(text=tr("modify"))
     open_folder_button.config(text=tr("open_folder"))
     log_label.config(text=tr("agent_log"))
+    health_button.config(text="后端体检" if LANG == "zh" else "Backend Check")
+    cancel_button.config(text="取消任务" if LANG == "zh" else "Cancel Task")
     for key in VIEW_KEYS:
         view_labels[key].config(text=tr(key))
         view_choose_buttons[key].config(text=tr("choose"))
@@ -767,7 +852,19 @@ main_image_var = tk.StringVar()
 view_vars = {key: tk.StringVar() for key in VIEW_KEYS}
 language_var = tk.StringVar(value=TEXT["zh"]["chinese"])
 progress_var = tk.IntVar(value=0)
-backend_var = tk.StringVar(value=BACKEND_TRIPOSR)
+backend_var = tk.StringVar(
+    value=DEFAULT_BACKEND
+    if DEFAULT_BACKEND
+    in {
+        BACKEND_CRAFTSMAN,
+        BACKEND_AUTO,
+        BACKEND_TRIPOSR_FUSION,
+        BACKEND_TRIPOSR,
+        BACKEND_EXTERNAL_MULTIVIEW,
+    }
+    else BACKEND_TRIPOSR
+)
+backend_status_var = tk.StringVar(value="后端尚未体检")
 view_labels = {}
 view_choose_buttons = {}
 view_clear_buttons = {}
@@ -804,6 +901,15 @@ backend_box = ttk.Combobox(
     width=24,
 )
 backend_box.pack(side="left", padx=8)
+health_button = tk.Button(
+    backend_frame,
+    text="后端体检",
+    command=lambda: start_backend_health_check(show_dialog=True),
+)
+health_button.pack(side="left", padx=8)
+tk.Label(backend_frame, textvariable=backend_status_var, anchor="w").pack(
+    side="left", fill="x", expand=True, padx=8
+)
 
 main_image_label = tk.Label(root, text=tr("main_image"))
 main_image_label.pack(anchor="w", padx=16)
@@ -844,6 +950,14 @@ generate_button = tk.Button(btn_row, text=tr("generate"), width=26, command=star
 generate_button.pack(side="left", padx=8)
 modify_button = tk.Button(btn_row, text=tr("modify"), width=22, command=start_modify)
 modify_button.pack(side="left", padx=8)
+cancel_button = tk.Button(
+    btn_row,
+    text="取消任务",
+    width=14,
+    command=cancel_task,
+    state="disabled",
+)
+cancel_button.pack(side="left", padx=8)
 open_folder_button = tk.Button(btn_row, text=tr("open_folder"), width=18, command=open_result_folder)
 open_folder_button.pack(side="left", padx=8)
 
@@ -855,4 +969,5 @@ output_box = scrolledtext.ScrolledText(root, height=15)
 output_box.pack(fill="both", expand=True, padx=16, pady=(0, 16))
 
 apply_language()
+root.after(500, lambda: start_backend_health_check(show_dialog=False))
 root.mainloop()

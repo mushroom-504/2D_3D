@@ -2,9 +2,11 @@ from pathlib import Path
 
 from auto_repair import make_ai_code
 from backend_manager import run_command
+from config_loader import get_path, get_timeout
 
 
-BLENDER_EXE = r"C:\Program Files\Blender Foundation\Blender 4.4\blender.exe"
+BLENDER_EXE = get_path("blender_exe")
+BLENDER_TIMEOUT = get_timeout("blender")
 
 
 def make_blender_runner(script_path, obj_path, blend_path, user_code, open_existing=False):
@@ -165,7 +167,10 @@ def run_blender_with_repair(
         script_path = Path(blend_path).parent / f"agent_blender_script_attempt_{attempt}.py"
         make_blender_runner(script_path, obj_path, blend_path, user_code, open_existing=open_existing)
         try:
-            run_command([BLENDER_EXE, "--background", "--python", str(script_path)])
+            run_command(
+                [BLENDER_EXE, "--background", "--python", script_path],
+                timeout=BLENDER_TIMEOUT,
+            )
             return user_code
         except Exception as e:
             error_message = str(e)
@@ -444,7 +449,10 @@ except Exception as exc:
     )
 
     log("TripoSR Enhanced: running Blender thickness repair and reference shaping.")
-    run_command([BLENDER_EXE, "--background", "--python", str(script_path)])
+    run_command(
+        [BLENDER_EXE, "--background", "--python", script_path],
+        timeout=BLENDER_TIMEOUT,
+    )
     return user_code
 
 
@@ -795,5 +803,8 @@ except Exception as exc:
     )
 
     log("TripoSR Fusion: running Blender multi-mesh alignment and voxel remesh.")
-    run_command([BLENDER_EXE, "--background", "--python", str(script_path)])
+    run_command(
+        [BLENDER_EXE, "--background", "--python", script_path],
+        timeout=BLENDER_TIMEOUT,
+    )
     return user_code

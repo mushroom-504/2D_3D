@@ -1,15 +1,16 @@
 import json
 import traceback
 from datetime import datetime
-from pathlib import Path
+
+from config_loader import get_path
 
 
-DESKTOP = Path.home() / "Desktop"
-HISTORY_FILE = DESKTOP / "3d_agent_history.jsonl"
-LAST_ERROR_FILE = DESKTOP / "3d_agent_last_error.txt"
+HISTORY_FILE = get_path("history_file")
+LAST_ERROR_FILE = get_path("last_error_file")
 
 
 def write_error_report(error):
+    LAST_ERROR_FILE.parent.mkdir(parents=True, exist_ok=True)
     LAST_ERROR_FILE.write_text(
         "3D Agent Error Report\n"
         + "=" * 60
@@ -23,6 +24,7 @@ def write_error_report(error):
 
 
 def append_history(event):
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     event = dict(event)
     event["time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with HISTORY_FILE.open("a", encoding="utf-8") as f:
