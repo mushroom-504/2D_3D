@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新">
-      <change afterPath="$PROJECT_DIR$/API_README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/agent_brain.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/agent_brain.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/auto_repair.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/auto_repair.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/backend_health.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_health.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/blender_executor.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/blender_executor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/fix/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/config_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/config_loader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/mesh_refiner.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/mesh_refiner.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/model_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/model_checker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fix/three_view_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/three_view_agent.py" afterDir="false" />
-    </list>
+    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -69,7 +54,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "正在合并 main",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Git/2D_3D",
     "nodejs_package_manager_path": "npm",
@@ -140,7 +125,7 @@
       <workItem from="1784851520585" duration="7978000" />
       <workItem from="1784887854798" duration="513000" />
       <workItem from="1785110929131" duration="4754000" />
-      <workItem from="1785118520735" duration="4995000" />
+      <workItem from="1785118520735" duration="5330000" />
     </task>
     <task id="LOCAL-00001" summary="代码更新">
       <option name="closed" value="true" />
@@ -222,7 +207,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785113649879</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1785144402787</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1785144402787</updated>
+    </task>
+    <task id="LOCAL-00012" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1785144410818</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1785144410818</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
