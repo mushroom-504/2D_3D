@@ -37,7 +37,7 @@ from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
 from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
 from project_history import append_history, write_error_report
-from config_loader import get_path, get_runtime
+from config_loader import get_path, get_runtime, get_section
 from task_manager import (
     clear_active_job,
     create_job,
@@ -60,6 +60,10 @@ DESKTOP = get_path("output_root")
 DEFAULT_BACKEND = str(get_runtime("default_backend", BACKEND_TRIPOSR))
 VIEW_KEYS = ["back", "top", "bottom", "left", "right"]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+MAX_VISUAL_REPAIR_ATTEMPTS = max(
+    2,
+    min(3, int(get_section("quality").get("max_visual_repair_attempts", 3))),
+)
 
 LANG = "zh"
 current_result_dir = None
@@ -466,21 +470,21 @@ def run_blender_and_check_with_auto_repair(
     current_intent = blender_intent
     latest_check = None
 
-    for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
-        log(f"Blender/check attempt {attempt}/{MAX_REPAIR_ATTEMPTS}")
+    for attempt in range(1, MAX_VISUAL_REPAIR_ATTEMPTS + 1):
+        log(f"Blender visual-loop attempt {attempt}/{MAX_VISUAL_REPAIR_ATTEMPTS}")
         latest_code = run_blender_with_repair(
             final_obj,
             final_blend,
             current_intent,
-            open_existing=False,
+            open_existing=attempt > 1,
             log_callback=log,
             attempt_label=tr("attempt"),
             repair_label=tr("repair"),
             max_script_attempts=1,
-            action_plan=action_plan,
+            action_plan=action_plan if attempt == 1 else None,
         )
 
-        latest_check = check_generation_outputs(result_dir)
+        latest_check = check_generation_outputs(result_dir, visual_iteration=attempt)
         if latest_check["ok"]:
             return latest_code, latest_check
 
@@ -497,13 +501,59 @@ def run_blender_and_check_with_auto_repair(
         for action in repair_report.get("actions", []):
             log(f"- repair action: {action}")
 
-        if attempt >= MAX_REPAIR_ATTEMPTS:
+        if attempt >= MAX_VISUAL_REPAIR_ATTEMPTS:
             break
 
         current_intent = build_repair_intent(blender_intent, repair_report, latest_check)
         log("Auto-repair: regenerating Blender script and rerunning.")
 
     return latest_code, latest_check
+
+
+def repair_existing_blend_from_visual_differences(
+    final_obj,
+    final_blend,
+    blender_intent,
+    result_dir,
+    initial_check,
+):
+    """Continue a Fusion result through at most two visual repair passes."""
+    latest_check = initial_check
+    generated_codes = []
+    for attempt in range(2, MAX_VISUAL_REPAIR_ATTEMPTS + 1):
+        if latest_check.get("ok"):
+            break
+        repair_report = analyze_error_message(
+            "\n".join(latest_check.get("problems", [])), latest_check
+        )
+        repair_intent = build_repair_intent(
+            blender_intent, repair_report, latest_check
+        )
+        record_stage(
+            f"fusion_visual_repair_decision_{attempt}",
+            output=json.dumps(repair_report, ensure_ascii=False, indent=2),
+            error="\n".join(latest_check.get("problems", [])),
+        )
+        log(
+            f"Fusion visual-loop repair {attempt}/{MAX_VISUAL_REPAIR_ATTEMPTS}"
+        )
+        generated_codes.append(
+            run_blender_with_repair(
+                final_obj,
+                final_blend,
+                repair_intent,
+                open_existing=True,
+                log_callback=log,
+                attempt_label=tr("attempt"),
+                repair_label=tr("repair"),
+                max_script_attempts=1,
+                action_plan=None,
+            )
+        )
+        latest_check = check_generation_outputs(
+            result_dir, visual_iteration=attempt
+        )
+    return "\n\n".join(generated_codes), latest_check
 
 
 def generate_3d(
@@ -662,7 +712,18 @@ def generate_3d(
             )
             user_code += "\n\n" + structured_code
         with task_stage("visual_quality_and_validation"):
-            check = check_generation_outputs(result_dir)
+            check = check_generation_outputs(result_dir, visual_iteration=1)
+        if not check["ok"]:
+            with task_stage("fusion_visual_repair_loop"):
+                repair_code, check = repair_existing_blend_from_visual_differences(
+                    final_obj,
+                    final_blend,
+                    blender_intent,
+                    result_dir,
+                    check,
+                )
+                if repair_code:
+                    user_code += "\n\n" + repair_code
     else:
         final_obj = result_dir / f"mesh{obj_path.suffix.lower()}"
         shutil.copy2(obj_path, final_obj)

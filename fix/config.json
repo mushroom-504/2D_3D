@@ -2,9 +2,6 @@
   "paths": {
     "triposr_python": "D:/conda/envs/triposr/python.exe",
     "triposr_dir": "../TripoSR-main",
-    "craftsman_python": "D:/conda/envs/CraftsMan/python.exe",
-    "craftsman_dir": "../CraftsMan3D-main/CraftsMan3D-main",
-    "craftsman_model": "D:/CraftsMan_models/craftsman-DoraVAE",
     "blender_exe": "C:/Program Files/Blender Foundation/Blender 4.4/blender.exe",
     "work_root": "C:/TSR_Work",
     "output_root": "~/Desktop",
@@ -19,8 +16,6 @@
   },
   "runtime": {
     "default_backend": "TripoSR",
-    "craftsman_device": "cuda",
-    "craftsman_dtype": "float32",
     "craftsman_mode": "remote_only",
     "allow_backend_fallback": true,
     "terminate_grace_seconds": 5
@@ -46,12 +41,15 @@
   },
   "quality": {
     "render_resolution": 512,
-    "visual_similarity_warning_threshold": 20.0
+    "visual_similarity_warning_threshold": 60.0,
+    "missing_silhouette_warning_ratio": 0.08,
+    "color_difference_warning_percent": 25.0,
+    "enable_semantic_visual_comparison": true,
+    "max_visual_repair_attempts": 3
   },
   "timeouts_seconds": {
     "default_process": 900,
     "triposr": 900,
-    "craftsman": 1800,
     "multiview": 1800,
     "blender": 600,
     "model_check": 180,

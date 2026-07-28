@@ -6,9 +6,6 @@ from backend_manager import (
     BACKEND_EXTERNAL_MULTIVIEW,
     BACKEND_TRIPOSR,
     BACKEND_TRIPOSR_FUSION,
-    CRAFTSMAN_DIR,
-    CRAFTSMAN_MODEL_DIR,
-    CRAFTSMAN_PYTHON,
     MAST3R_PYTHON,
     MULTIVIEW_SCRIPT,
     TRIPOSR_DIR,
@@ -16,13 +13,11 @@ from backend_manager import (
     run_command,
 )
 from config_loader import get_path, get_timeout
-from config_loader import get_runtime
 
 
 BLENDER_EXE = get_path("blender_exe")
 MAST3R_DIR = get_path("mast3r_dir")
 HEALTH_TIMEOUT = get_timeout("health_probe")
-MIN_CHECKPOINT_BYTES = 1024 * 1024
 
 
 def _status(available, reason, **details):
@@ -67,45 +62,6 @@ def _check_triposr():
 
 
 def _check_craftsman():
-    configured_mode = get_runtime("craftsman_mode", "remote_only")
-    package = CRAFTSMAN_DIR / "craftsman" / "__init__.py"
-    config = CRAFTSMAN_MODEL_DIR / "config.yaml"
-    checkpoint = CRAFTSMAN_MODEL_DIR / "model.ckpt"
-    source_files_ok = package.is_file()
-    model_files_ok = (
-        config.is_file()
-        and checkpoint.is_file()
-        and checkpoint.stat().st_size >= MIN_CHECKPOINT_BYTES
-    )
-    missing = [
-        str(path)
-        for path in (package, config, checkpoint)
-        if not path.is_file()
-    ]
-    local_ok = False
-    local_reason = ""
-    check_local = configured_mode in {"local_preferred", "local_only"}
-    if not check_local:
-        local_reason = "Skipped because CraftsMan is configured as a remote service."
-    elif missing:
-        local_reason = "Missing CraftsMan files: " + "; ".join(missing)
-    elif checkpoint.stat().st_size < MIN_CHECKPOINT_BYTES:
-        local_reason = f"CraftsMan checkpoint is incomplete: {checkpoint}"
-    else:
-        root_literal = json.dumps(str(CRAFTSMAN_DIR))
-        code = (
-            "import sys, torch; "
-            f"sys.path.insert(0, {root_literal}); "
-            "from craftsman import CraftsManPipeline; "
-            "assert torch.cuda.is_available(), 'CUDA is unavailable'; "
-            "print('torch=' + torch.__version__); "
-            "print('gpu=' + torch.cuda.get_device_name(0)); "
-            "print('CraftsManPipeline=OK')"
-        )
-        local_ok, local_reason = _probe_python(
-            CRAFTSMAN_PYTHON, code, cwd=CRAFTSMAN_DIR
-        )
-
     remote_ok = False
     remote_reason = ""
     try:
@@ -121,23 +77,14 @@ def _check_craftsman():
     except Exception as exc:
         remote_reason = str(exc)
 
-    ok = remote_ok if configured_mode == "remote_only" else remote_ok or local_ok
     reason = f"remote_service: {'OK' if remote_ok else remote_reason}"
-    if check_local:
-        reason += f"; local: {'OK' if local_ok else local_reason}"
     return _status(
-        ok,
+        remote_ok,
         reason,
         experimental=False,
         service_type="remote",
-        configured_mode=configured_mode,
+        configured_mode="remote_only",
         remote_api_available=remote_ok,
-        local_available=local_ok,
-        source_files_ok=source_files_ok,
-        model_files_ok=model_files_ok,
-        python=str(CRAFTSMAN_PYTHON),
-        source=str(CRAFTSMAN_DIR),
-        model=str(CRAFTSMAN_MODEL_DIR),
     )
 
 

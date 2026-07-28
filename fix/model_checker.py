@@ -179,7 +179,7 @@ def _run_blender_model_check(result_dir, blend_path):
     return json.loads(output_json.read_text(encoding="utf-8"))
 
 
-def check_generation_outputs(result_dir):
+def check_generation_outputs(result_dir, visual_iteration=None):
     result_dir = Path(result_dir)
     expected = _expected_files(result_dir)
     missing = [name for name, path in expected.items() if not path.exists()]
@@ -197,7 +197,11 @@ def check_generation_outputs(result_dir):
         }
     visual_quality = {}
     if expected["blend"].exists() and blender_check.get("can_open_blender_file"):
-        visual_quality = evaluate_visual_similarity(result_dir, expected["blend"])
+        visual_quality = evaluate_visual_similarity(
+            result_dir,
+            expected["blend"],
+            iteration=visual_iteration,
+        )
 
     problems = []
     if missing:
@@ -222,6 +226,35 @@ def check_generation_outputs(result_dir):
             f"{visual_quality.get('overall_score')} < "
             f"{visual_quality.get('warning_threshold')}."
         )
+    worst_missing = float(visual_quality.get("worst_missing_silhouette_ratio", 0.0))
+    missing_threshold = float(
+        visual_quality.get("missing_silhouette_warning_ratio", 1.0)
+    )
+    if worst_missing > missing_threshold:
+        problems.append(
+            "Rendered model is missing reference silhouette regions: "
+            f"{worst_missing:.1%} > {missing_threshold:.1%}."
+        )
+    worst_color = float(visual_quality.get("worst_color_difference_percent", 0.0))
+    color_threshold = float(
+        visual_quality.get("color_difference_warning_percent", 100.0)
+    )
+    if worst_color > color_threshold:
+        problems.append(
+            "Rendered model colors differ from the reference images: "
+            f"{worst_color:.1f}% > {color_threshold:.1f}%."
+        )
+    semantic = visual_quality.get("semantic_comparison") or {}
+    if semantic.get("available") and str(semantic.get("severity", "none")).lower() in {
+        "moderate",
+        "major",
+    }:
+        problems.append(
+            "Vision comparison found meaningful geometry/style differences: "
+            f"{semantic.get('overall_assessment', semantic.get('severity'))}"
+        )
+    for part in semantic.get("global_missing_parts") or []:
+        problems.append(f"Missing visible part: {part}")
 
     problems.extend(reference_usage.get("warnings", []))
     problems.extend(blender_check.get("warnings", []))
@@ -241,6 +274,15 @@ def check_generation_outputs(result_dir):
             "reference_views_used_in_plan": reference_usage.get("looks_used", False),
             "visual_similarity": visual_quality.get("overall_score"),
             "visual_similarity_available": visual_quality.get("available", False),
+            "visual_repair_needed": visual_quality.get("needs_repair", False),
+            "color_similarity_by_view": {
+                view: info.get("color_similarity")
+                for view, info in (visual_quality.get("views") or {}).items()
+            },
+            "missing_silhouette_by_view": {
+                view: info.get("missing_silhouette_ratio")
+                for view, info in (visual_quality.get("views") or {}).items()
+            },
         },
         "reference_usage": reference_usage,
         "blender_check": blender_check,

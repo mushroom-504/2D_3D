@@ -1,6 +1,7 @@
 # Python caches and virtual environments
 __pycache__/
 *.py[cod]
+*.bak_codex_*
 .venv/
 venv/
 env/
@@ -17,6 +18,7 @@ output/
 outputs/
 output_*/
 data/
+build/
 *.blend
 *.blend1
 *.obj

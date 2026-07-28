@@ -75,6 +75,13 @@ def local_analyze(user_request, image_paths):
     return {
         "mode": "local_rules",
         "summary": user_request or "Generate a 3D model from all provided views.",
+        "subject": "unknown in rule mode",
+        "orientation": "unknown in rule mode",
+        "style": "unknown in rule mode",
+        "size_analysis": {
+            "dimensions_from_user_text": dimensions,
+            "image_dimensions": "not readable in rule mode",
+        },
         "available_views": list(images.keys()),
         "dimensions": dimensions,
         "view_analysis": {
@@ -169,7 +176,9 @@ def openai_vision_analyze(user_request, image_paths):
                 "Always ask Blender to straighten and center the model.\n"
                 "Return ONLY valid JSON. Do not use markdown.\n\n"
                 "Required JSON keys:\n"
-                "summary, available_views, important_differences_between_views, dimensions, view_analysis, modeling_plan, blender_modification_goals, orientation_goals, structured_actions, uncertainty.\n\n"
+                "summary, subject, orientation, style, size_analysis, available_views, "
+                "important_differences_between_views, dimensions, view_analysis, modeling_plan, "
+                "blender_modification_goals, orientation_goals, structured_actions, uncertainty.\n\n"
                 "Dimension object format:\n"
                 "{name, value, unit, source_view, uncertain, note}\n\n"
                 "structured_actions must be a JSON array. Allowed action types:\n"
@@ -216,6 +225,101 @@ def openai_vision_analyze(user_request, image_paths):
             "modeling_plan": [text],
             "uncertainty": ["The model returned text that was not valid JSON."],
         }
+
+
+def compare_reference_and_render_pairs(view_pairs):
+    """Use the configured vision model to describe actionable 2D/3D differences."""
+    settings = get_vision_api_settings()
+    if not settings["enabled"] or not settings["api_key"]:
+        return {
+            "available": False,
+            "mode": "rule_only",
+            "warning": "Vision API is unavailable; semantic missing-part analysis was skipped.",
+        }
+
+    valid_pairs = {
+        view: (Path(reference), Path(render))
+        for view, (reference, render) in (view_pairs or {}).items()
+        if Path(reference).is_file() and Path(render).is_file()
+    }
+    if not valid_pairs:
+        return {
+            "available": False,
+            "mode": "no_pairs",
+            "warning": "No reference/render pairs were available.",
+        }
+
+    from openai import OpenAI
+
+    client_kwargs = {"api_key": settings["api_key"]}
+    if settings["base_url"]:
+        client_kwargs["base_url"] = settings["base_url"]
+    client = OpenAI(**client_kwargs)
+    content = [
+        {
+            "type": "text",
+            "text": (
+                "You are inspecting a generated 3D model against reference images. "
+                "Each view has a REFERENCE image followed by a BLENDER RENDER. "
+                "Compare subject identity, orientation, proportions, silhouette, color/material, "
+                "and visible parts. Distinguish truly missing geometry from lighting, background, "
+                "texture, and camera differences. Give concrete Blender repair instructions. "
+                "Never request a pedestal or black base unless it exists in the reference. "
+                "Return ONLY JSON with keys: overall_assessment, severity, views, "
+                "global_missing_parts, global_extra_parts, blender_repair_instructions, confidence. "
+                "severity must be none, minor, moderate, or major. Each views entry must contain "
+                "orientation_match, proportion_difference, silhouette_difference, color_difference, "
+                "missing_parts, extra_parts, and repair_instructions."
+            ),
+        }
+    ]
+    for view in ("front", "back", "left", "right"):
+        pair = valid_pairs.get(view)
+        if not pair:
+            continue
+        reference, render = pair
+        content.extend(
+            [
+                {"type": "text", "text": f"{view.upper()} REFERENCE:"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": read_image_as_data_url(reference),
+                        "detail": "high",
+                    },
+                },
+                {"type": "text", "text": f"{view.upper()} BLENDER RENDER:"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": read_image_as_data_url(render),
+                        "detail": "high",
+                    },
+                },
+            ]
+        )
+
+    response = client.chat.completions.create(
+        model=settings["model"],
+        messages=[{"role": "user", "content": content}],
+        temperature=0,
+    )
+    text = response.choices[0].message.content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.I | re.S)
+    try:
+        result = json.loads(text)
+    except json.JSONDecodeError:
+        return {
+            "available": True,
+            "mode": "vision_raw_text",
+            "raw_analysis": text,
+            "severity": "unknown",
+            "blender_repair_instructions": [text],
+        }
+    result["available"] = True
+    result["mode"] = "vision_comparison"
+    return result
 
 
 def analyze_three_view_request(user_request, image_paths):

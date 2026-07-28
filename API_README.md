@@ -30,12 +30,7 @@ CRAFTSMAN_API_KEY=your_key_here
 }
 ```
 
-支持的模式：
-
-- `remote_preferred`：先远程，失败后尝试本地。
-- `local_preferred`：先本地，失败后尝试远程。
-- `remote_only`：只允许远程。
-- `local_only`：只允许本地。
+当前版本固定使用 `remote_only`：只允许远程 CraftsMan 服务，不再包含本地 CraftsMan 启动器、模型路径或本地 CUDA/Torch 检查。
 
 界面的“禁止自动降级”控制的是 CraftsMan 整体失败后是否切换到 TripoSR；无论是否降级，界面和任务记录都会分别显示“请求后端”“实际后端”和“降级原因”。
 

@@ -1,7 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新" />
+    <list default="true" id="f2f458e8-188a-4d97-9cf8-4569f575c1ac" name="更改" comment="代码更新">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/API_README.md" beforeDir="false" afterPath="$PROJECT_DIR$/API_README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/agent_brain.py.bak_codex_20260720_craftsman_backend" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/auto_repair.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/auto_repair.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/backend_health.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_health.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/backend_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py.bak_codex_20260720_craftsman_backend" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/backend_manager.py.bak_codex_20260720_project_triposr" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/3D建模智能体.exe" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/3D建模智能体.pkg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/Analysis-00.toc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/COLLECT-00.toc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/EXE-00.toc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/PKG-00.toc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/PYZ-00.pyz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/PYZ-00.toc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/base_library.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/warn-3D建模智能体.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/build/3D建模智能体/xref-3D建模智能体.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/fix/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/craftsman_runner.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/craftsman_runner.py.bak_codex_20260720_craftsman_backend" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/desktop_3d_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py.bak_codex_20260720_craftsman_backend" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/desktop_3d_generator.py.bak_codex_20260720_utf8_pillow" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/model.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/model_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/model_checker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/three_view_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/three_view_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fix/visual_quality.py" beforeDir="false" afterPath="$PROJECT_DIR$/fix/visual_quality.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/启动图片转3D.bat.bak_codex_20260720_project_relative" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -31,6 +63,18 @@
     </favorite-branches>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;mushroom-504&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/mushroom-504/2D_3D.git&quot;,
+    &quot;accountId&quot;: &quot;fd4227ce-133e-48b2-b70c-c40f13f20af7&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5,
   &quot;fromUser&quot;: false
@@ -40,28 +84,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.backend_manager.executor": "Run",
-    "Python.desktop_3d_generator.executor": "Run",
-    "Python.main_app.executor": "Run",
-    "Python.reconstruction_agent.executor": "Run",
-    "Python.run_blender.executor": "Run",
-    "Python.scripting_agent.executor": "Run",
-    "Python.test_jiaorong_api.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Git/2D_3D",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.backend_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.desktop_3d_generator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.reconstruction_agent.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_blender.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scripting_agent.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_jiaorong_api.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Git/2D_3D&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\Git\2D_3D" />
@@ -125,7 +169,9 @@
       <workItem from="1784851520585" duration="7978000" />
       <workItem from="1784887854798" duration="513000" />
       <workItem from="1785110929131" duration="4754000" />
-      <workItem from="1785118520735" duration="5330000" />
+      <workItem from="1785118520735" duration="6713000" />
+      <workItem from="1785201660322" duration="1207000" />
+      <workItem from="1785223184838" duration="2963000" />
     </task>
     <task id="LOCAL-00001" summary="代码更新">
       <option name="closed" value="true" />
@@ -223,7 +269,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785144410818</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="代码更新">
+      <option name="closed" value="true" />
+      <created>1785145229156</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1785145229156</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -267,7 +321,7 @@
     <SUITE FILE_PATH="coverage/PythonProject4$main_app.coverage" NAME="main_app 覆盖结果" MODIFIED="1784095375144" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PythonProject4$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1784166734175" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
     <SUITE FILE_PATH="coverage/PythonProject4$reconstruction_agent.coverage" NAME="reconstruction_agent 覆盖结果" MODIFIED="1783492761284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/2D_3D$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1785143807728" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
+    <SUITE FILE_PATH="coverage/2D_3D$desktop_3d_generator.coverage" NAME="desktop_3d_generator 覆盖结果" MODIFIED="1785226833176" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/fix" />
     <SUITE FILE_PATH="coverage/2D_3D$test_jiaorong_api.coverage" NAME="test_jiaorong_api 覆盖结果" MODIFIED="1784602190951" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

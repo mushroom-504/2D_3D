@@ -12,9 +12,6 @@ from task_manager import finish_stage, start_stage
 
 TRIPOSR_PYTHON = get_path("triposr_python")
 TRIPOSR_DIR = get_path("triposr_dir")
-CRAFTSMAN_PYTHON = get_path("craftsman_python")
-CRAFTSMAN_DIR = get_path("craftsman_dir")
-CRAFTSMAN_MODEL_DIR = get_path("craftsman_model")
 MAST3R_PYTHON = get_path("mast3r_python")
 MULTIVIEW_SCRIPT = get_path("multiview_script")
 WORK_ROOT = get_path("work_root")
@@ -28,12 +25,8 @@ BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
 
 DEFAULT_PROCESS_TIMEOUT = get_timeout("default_process")
 TRIPOSR_TIMEOUT = get_timeout("triposr")
-CRAFTSMAN_TIMEOUT = get_timeout("craftsman")
 MULTIVIEW_TIMEOUT = get_timeout("multiview")
 TERMINATE_GRACE_SECONDS = int(get_runtime("terminate_grace_seconds", 5))
-CRAFTSMAN_DEVICE = str(get_runtime("craftsman_device", "cuda"))
-CRAFTSMAN_DTYPE = str(get_runtime("craftsman_dtype", "float32"))
-CRAFTSMAN_MODE = str(get_runtime("craftsman_mode", "remote_only"))
 CRAFTSMAN_API_TIMEOUT = get_timeout("craftsman_api")
 CRAFTSMAN_API_CONFIG = get_section("craftsman_api")
 _last_backend_details = {}
@@ -225,99 +218,36 @@ def run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=384):
 
 def run_craftsman_backend(safe_input, result_dir):
     global _last_backend_details
-    errors = []
     output_dir = Path(result_dir) / "craftsman_output"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_obj = output_dir / "mesh.obj"
-
-    def run_remote():
-        runner = Path(__file__).with_name("craftsman_api_runner.py")
-        if not CRAFTSMAN_API_CONFIG.get("enabled", False):
-            raise RuntimeError("CraftsMan remote API is disabled in config.json.")
-        run_command(
-            [
-                TRIPOSR_PYTHON,
-                runner,
-                "--input",
-                safe_input,
-                "--output",
-                output_obj,
-                "--timeout",
-                str(CRAFTSMAN_API_TIMEOUT),
-            ],
-            cwd=Path(__file__).parent,
-            timeout=CRAFTSMAN_API_TIMEOUT + 30,
-        )
-        metadata_path = output_obj.with_suffix(".api.json")
-        metadata = {}
-        if metadata_path.is_file():
-            import json
-
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        _last_backend_details = {"engine": "remote_api", **metadata}
-        return output_obj
-
-    def run_local():
-        global _last_backend_details
-        if not CRAFTSMAN_PYTHON.is_file():
-            raise RuntimeError(f"CraftsMan Python environment not found: {CRAFTSMAN_PYTHON}")
-        if not (CRAFTSMAN_DIR / "craftsman" / "__init__.py").is_file():
-            raise RuntimeError(f"CraftsMan source package not found: {CRAFTSMAN_DIR}")
-        if not (CRAFTSMAN_MODEL_DIR / "config.yaml").is_file():
-            raise RuntimeError(
-                f"CraftsMan config missing: {CRAFTSMAN_MODEL_DIR / 'config.yaml'}"
-            )
-        if not (CRAFTSMAN_MODEL_DIR / "model.ckpt").is_file():
-            raise RuntimeError(
-                f"CraftsMan checkpoint missing: {CRAFTSMAN_MODEL_DIR / 'model.ckpt'}"
-            )
-
-        runner = Path(__file__).with_name("craftsman_runner.py")
-        run_command(
-            [
-                CRAFTSMAN_PYTHON,
-                runner,
-                "--input",
-                safe_input,
-                "--output",
-                output_obj,
-                "--craftsman-root",
-                CRAFTSMAN_DIR,
-                "--model-dir",
-                CRAFTSMAN_MODEL_DIR,
-                "--device",
-                CRAFTSMAN_DEVICE,
-                "--dtype",
-                CRAFTSMAN_DTYPE,
-            ],
-            cwd=CRAFTSMAN_DIR,
-            timeout=CRAFTSMAN_TIMEOUT,
-        )
-        _last_backend_details = {"engine": "local_craftsman"}
-        return output_obj
-
-    runners = (
-        [run_remote, run_local]
-        if CRAFTSMAN_MODE == "remote_preferred"
-        else [run_local, run_remote]
+    runner = Path(__file__).with_name("craftsman_api_runner.py")
+    if not CRAFTSMAN_API_CONFIG.get("enabled", False):
+        raise RuntimeError("CraftsMan remote API is disabled in config.json.")
+    run_command(
+        [
+            TRIPOSR_PYTHON,
+            runner,
+            "--input",
+            safe_input,
+            "--output",
+            output_obj,
+            "--timeout",
+            str(CRAFTSMAN_API_TIMEOUT),
+        ],
+        cwd=Path(__file__).parent,
+        timeout=CRAFTSMAN_API_TIMEOUT + 30,
     )
-    if CRAFTSMAN_MODE == "remote_only":
-        runners = [run_remote]
-    elif CRAFTSMAN_MODE == "local_only":
-        runners = [run_local]
+    if not output_obj.is_file() or output_obj.stat().st_size == 0:
+        raise RuntimeError("CraftsMan remote service did not create an OBJ file.")
+    metadata_path = output_obj.with_suffix(".api.json")
+    metadata = {}
+    if metadata_path.is_file():
+        import json
 
-    for runner in runners:
-        try:
-            result = runner()
-            if not result.is_file() or result.stat().st_size == 0:
-                raise RuntimeError(f"CraftsMan did not create an OBJ: {result}")
-            return result
-        except TaskCancelledError:
-            raise
-        except Exception as exc:
-            errors.append(f"{runner.__name__}: {exc}")
-
-    raise RuntimeError("CraftsMan failed in every configured mode:\n" + "\n".join(errors))
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    _last_backend_details = {"engine": "remote_api", **metadata}
+    return output_obj
 
 
 def get_last_backend_details():

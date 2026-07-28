@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -51,6 +52,25 @@ def analyze_error_message(error_text, model_check=None):
     if "material" in combined:
         categories.append("material_problem")
         actions.append("assign safe default materials to mesh objects without materials")
+    if "visual similarity" in combined or "silhouette" in combined:
+        categories.append("visual_shape_difference")
+        actions.append(
+            "use the per-view silhouette difference and missing-region map to correct proportions and visible geometry"
+        )
+    if "missing visible part" in combined or "missing part" in combined:
+        categories.append("missing_visible_parts")
+        actions.append(
+            "add or reshape only the parts explicitly identified as missing by the vision comparison"
+        )
+    if (
+        "color difference" in combined
+        or "color similarity" in combined
+        or "colors differ" in combined
+    ):
+        categories.append("color_difference")
+        actions.append(
+            "adjust material base colors to match the measured reference colors while preserving geometry"
+        )
 
     if not categories:
         categories.append("unknown")
@@ -81,6 +101,42 @@ def build_repair_intent(base_intent, repair_report, model_check=None):
         for problem in model_check["problems"]:
             lines.append(f"- {problem}")
 
+    visual_quality = model_check.get("visual_quality") or {}
+    if visual_quality:
+        compact_views = {
+            view: {
+                "score": info.get("score"),
+                "silhouette_difference_percent": info.get(
+                    "silhouette_difference_percent"
+                ),
+                "missing_silhouette_ratio": info.get(
+                    "missing_silhouette_ratio"
+                ),
+                "missing_regions_percent": info.get("missing_regions_percent"),
+                "extra_regions_percent": info.get("extra_regions_percent"),
+                "color_difference_percent": info.get("color_difference_percent"),
+                "reference_mean_rgb": info.get("reference_mean_rgb"),
+                "render_mean_rgb": info.get("render_mean_rgb"),
+            }
+            for view, info in (visual_quality.get("views") or {}).items()
+        }
+        lines.extend(
+            [
+                "",
+                "Visual comparison metrics by view:",
+                json.dumps(compact_views, ensure_ascii=False, indent=2),
+            ]
+        )
+        semantic = visual_quality.get("semantic_comparison") or {}
+        if semantic:
+            lines.extend(
+                [
+                    "",
+                    "Vision model comparison and missing-part analysis:",
+                    json.dumps(semantic, ensure_ascii=False, indent=2),
+                ]
+            )
+
     lines.extend(
         [
             "",
@@ -90,6 +146,9 @@ def build_repair_intent(base_intent, repair_report, model_check=None):
             "- Remove unwanted black bases, flat cylinders, pedestal objects, Base objects, and Base_Dark materials.",
             "- Straighten the model, center it, and place its bottom on the ground plane.",
             "- Add simple safe materials to mesh objects that have no material.",
+            "- Follow the visual comparison repair instructions view by view.",
+            "- Correct missing red silhouette regions without expanding into blue extra regions.",
+            "- Do not invent complex geometry when the vision comparison is uncertain.",
             "- Export result.blend, model.glb, model.fbx, model.stl, and preview.png again.",
         ]
     )
