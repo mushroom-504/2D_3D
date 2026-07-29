@@ -39,6 +39,14 @@
     "model_env": "OPENAI_VISION_MODEL",
     "fallback_model_env": "AIDER_MODEL"
   },
+  "conversation_api": {
+    "enabled": true,
+    "api_key_env": "JIAORONG_API_KEY",
+    "base_url_env": "OPENAI_API_BASE",
+    "model_env": "OPENAI_CHAT_MODEL",
+    "fallback_model_env": "AIDER_MODEL",
+    "max_history_messages": 16
+  },
   "quality": {
     "render_resolution": 512,
     "visual_similarity_warning_threshold": 60.0,

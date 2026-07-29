@@ -38,6 +38,7 @@ from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
 from project_history import append_history, write_error_report
 from config_loader import get_path, get_runtime, get_section
+from conversation_agent import ConversationAgent
 from task_manager import (
     clear_active_job,
     create_job,
@@ -55,7 +56,6 @@ from task_manager import (
 )
 from three_view_agent import get_analysis_capability
 
-
 DESKTOP = get_path("output_root")
 DEFAULT_BACKEND = str(get_runtime("default_backend", BACKEND_TRIPOSR))
 VIEW_KEYS = ["back", "top", "bottom", "left", "right"]
@@ -63,6 +63,9 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 MAX_VISUAL_REPAIR_ATTEMPTS = max(
     2,
     min(3, int(get_section("quality").get("max_visual_repair_attempts", 3))),
+)
+conversation_agent = ConversationAgent(
+    get_section("conversation_api").get("max_history_messages", 16)
 )
 
 LANG = "zh"
@@ -99,7 +102,7 @@ TEXT = {
         "modify": "修改当前模型",
         "open_folder": "打开结果文件夹",
         "agent_log": "智能体日志",
-        "default_request": "请根据正面主图生成基础模型，并参考背面、上面、下面、左侧、右侧图修正；模型要放正，不要黑色底座或圆柱。",
+        "default_request": "请根据正面主图和参考图片生成基础模型，并参考背面、上面、下面、左侧、右侧图修正；模型要放正，不要黑色底座或圆柱。",
         "choose_title": "选择图片",
         "image_files": "图片文件",
         "all_files": "所有文件",
@@ -189,7 +192,7 @@ TEXT["zh"] = {
     "modify": "修改当前模型",
     "open_folder": "打开结果文件夹",
     "agent_log": "智能体日志",
-    "default_request": "请根据正面主图生成基础模型，并参考背面、上面、下面、左侧、右侧图片修正；模型要摆正，不要黑色底座或圆柱。",
+    "default_request": "请根据正面主图和参考图片生成基础模型，并参考背面、上面、下面、左侧、右侧图片修正；模型要摆正，不要黑色底座或圆柱。",
     "choose_title": "选择图片",
     "image_files": "图片文件",
     "all_files": "所有文件",
@@ -1208,6 +1211,196 @@ def show_task_manager():
     refresh()
 
 
+def _conversation_context():
+    return {
+        "language": "Chinese" if LANG == "zh" else "English",
+        "requested_backend": backend_var.get(),
+        "main_image_selected": bool(main_image_var.get().strip()),
+        "selected_reference_views": [
+            key for key in VIEW_KEYS if view_vars[key].get().strip()
+        ],
+        "current_model_available": bool(
+            current_blend and Path(current_blend).is_file()
+        ),
+        "task_running": bool(is_running),
+        "active_task_id": active_job_id or "",
+        "automatic_fallback_allowed": not disable_fallback_var.get(),
+        "image_understanding_mode": vision_mode_var.get(),
+    }
+
+
+def show_conversation_window():
+    window = tk.Toplevel(root)
+    window.title("与智能体对话" if LANG == "zh" else "Chat with Agent")
+    window.geometry("780x660")
+    window.transient(root)
+
+    heading = tk.Label(
+        window,
+        text=(
+            "告诉我你想生成或修改什么，我会先确认理解，再整理成建模需求。"
+            if LANG == "zh"
+            else "Describe what to generate or change. I will clarify it and prepare a modeling request."
+        ),
+        anchor="w",
+        justify="left",
+        wraplength=740,
+    )
+    heading.pack(fill="x", padx=14, pady=(14, 8))
+
+    transcript = scrolledtext.ScrolledText(window, height=22, wrap=tk.WORD)
+    transcript.pack(fill="both", expand=True, padx=14, pady=(0, 8))
+    transcript.tag_configure("user", foreground="#1756a9", spacing1=8)
+    transcript.tag_configure("agent", foreground="#176b36", spacing1=8)
+    transcript.tag_configure("meta", foreground="#666666")
+
+    def append_message(role, text, tag):
+        transcript.config(state="normal")
+        transcript.insert(tk.END, f"{role}\n", tag)
+        transcript.insert(tk.END, str(text).strip() + "\n")
+        transcript.config(state="disabled")
+        transcript.see(tk.END)
+
+    history = conversation_agent.snapshot()
+    if history:
+        for item in history:
+            if item.get("role") == "user":
+                append_message("你" if LANG == "zh" else "You", item.get("content", ""), "user")
+            else:
+                append_message("智能体" if LANG == "zh" else "Agent", item.get("content", ""), "agent")
+    else:
+        append_message(
+            "智能体" if LANG == "zh" else "Agent",
+            (
+                "你好，我可以帮你梳理主体、方向、风格、尺寸、材质和需要修改的部位。"
+                if LANG == "zh"
+                else "Hello. I can clarify the subject, orientation, style, dimensions, materials, and requested changes."
+            ),
+            "agent",
+        )
+
+    input_box = tk.Text(window, height=4, wrap=tk.WORD)
+    input_box.pack(fill="x", padx=14, pady=(0, 6))
+    status_var = tk.StringVar(value="")
+    tk.Label(window, textvariable=status_var, anchor="w", fg="#666666").pack(
+        fill="x", padx=14
+    )
+    last_result = {"value": None}
+
+    buttons = tk.Frame(window)
+    buttons.pack(fill="x", padx=14, pady=(6, 14))
+
+    def apply_understood_request():
+        result = last_result.get("value") or {}
+        normalized = str(result.get("normalized_request") or "").strip()
+        if not normalized:
+            messagebox.showwarning(
+                "智能体对话",
+                "当前回复还没有形成完整建模需求，请继续补充。",
+                parent=window,
+            )
+            return
+        request_box.delete("1.0", tk.END)
+        request_box.insert("1.0", normalized)
+        status_var.set("已写入主界面的“自然语言需求”。")
+
+    apply_button = tk.Button(
+        buttons,
+        text="应用到建模需求" if LANG == "zh" else "Apply Modeling Request",
+        command=apply_understood_request,
+        state="disabled",
+    )
+    apply_button.pack(side="left")
+
+    def reset_chat():
+        conversation_agent.reset()
+        transcript.config(state="normal")
+        transcript.delete("1.0", tk.END)
+        transcript.config(state="disabled")
+        last_result["value"] = None
+        apply_button.config(state="disabled")
+        status_var.set("对话上下文已清空。" if LANG == "zh" else "Conversation cleared.")
+
+    tk.Button(
+        buttons,
+        text="清空对话" if LANG == "zh" else "Clear Chat",
+        command=reset_chat,
+    ).pack(side="left", padx=8)
+
+    def finish_reply(result):
+        last_result["value"] = result
+        append_message(
+            "智能体" if LANG == "zh" else "Agent",
+            result.get("reply", ""),
+            "agent",
+        )
+        missing = result.get("missing_information") or []
+        if missing:
+            append_message(
+                "还需要" if LANG == "zh" else "Still needed",
+                "\n".join(f"• {item}" for item in missing),
+                "meta",
+            )
+        normalized = str(result.get("normalized_request") or "").strip()
+        apply_button.config(state="normal" if normalized else "disabled")
+        mode = result.get("mode", "")
+        if mode == "api":
+            status_var.set(
+                f"API 对话模式 · {result.get('model', '')}"
+                if LANG == "zh"
+                else f"API chat mode · {result.get('model', '')}"
+            )
+        elif mode == "local_rules_after_api_error":
+            status_var.set(
+                "API 暂时不可用，已使用本地规则继续回答。"
+                if LANG == "zh"
+                else "API unavailable; continued with local rules."
+            )
+        else:
+            status_var.set(
+                "本地规则对话模式" if LANG == "zh" else "Local rule chat mode"
+            )
+        send_button.config(state="normal")
+        input_box.config(state="normal")
+        input_box.focus_set()
+
+    def send_message(event=None):
+        message = input_box.get("1.0", tk.END).strip()
+        if not message:
+            return "break"
+        input_box.delete("1.0", tk.END)
+        append_message("你" if LANG == "zh" else "You", message, "user")
+        status_var.set("智能体正在理解……" if LANG == "zh" else "Agent is thinking...")
+        send_button.config(state="disabled")
+        input_box.config(state="disabled")
+        context = _conversation_context()
+
+        def worker():
+            try:
+                result = conversation_agent.reply(message, context)
+            except Exception as exc:
+                result = {
+                    "reply": f"对话失败：{exc}",
+                    "normalized_request": "",
+                    "missing_information": [],
+                    "mode": "error",
+                }
+            root.after(0, lambda: finish_reply(result))
+
+        threading.Thread(target=worker, daemon=True).start()
+        return "break"
+
+    send_button = tk.Button(
+        buttons,
+        text="发送" if LANG == "zh" else "Send",
+        width=12,
+        command=send_message,
+    )
+    send_button.pack(side="right")
+    input_box.bind("<Control-Return>", send_message)
+    input_box.focus_set()
+
+
 def start_generate():
     image_path = main_image_var.get().strip()
     intent = request_box.get("1.0", tk.END).strip()
@@ -1309,6 +1502,7 @@ def apply_language():
     health_button.config(text="后端体检" if LANG == "zh" else "Backend Check")
     cancel_button.config(text="取消当前任务" if LANG == "zh" else "Cancel Current Task")
     task_manager_button.config(text="任务管理" if LANG == "zh" else "Task Manager")
+    chat_button.config(text="与智能体对话" if LANG == "zh" else "Chat with Agent")
     disable_fallback_check.config(
         text="禁止自动降级" if LANG == "zh" else "Disable automatic fallback"
     )
@@ -1412,6 +1606,13 @@ vision_prefix_label.pack(side="left")
 tk.Label(capability_frame, textvariable=vision_mode_var, anchor="w").pack(
     side="left", fill="x", expand=True
 )
+chat_button = tk.Button(
+    capability_frame,
+    text="与智能体对话",
+    command=show_conversation_window,
+    width=16,
+)
+chat_button.pack(side="right", padx=(8, 0))
 
 main_image_label = tk.Label(root, text=tr("main_image"))
 main_image_label.pack(anchor="w", padx=16)
