@@ -1,4 +1,5 @@
 from three_view_agent import analyze_three_view_request, build_blender_intent, save_analysis
+from config_loader import get_runtime
 
 
 BACKEND_AUTO = "Auto"
@@ -121,7 +122,17 @@ def create_modeling_plan(intent, image_paths_for_agent, analysis=None, requested
     reasons = []
     warnings = []
 
-    if requested_backend and requested_backend != BACKEND_AUTO:
+    if (
+        requested_backend == BACKEND_TRIPOSR
+        and reference_views
+        and bool(get_runtime("auto_promote_triposr_with_references", True))
+    ):
+        backend = BACKEND_TRIPOSR_FUSION
+        reasons.append(
+            "Reference images are present. Plain TripoSR only consumes the front image, "
+            "so the task was promoted to TripoSR Fusion to generate and align one mesh per view."
+        )
+    elif requested_backend and requested_backend != BACKEND_AUTO:
         backend = requested_backend
         reasons.append(f"User selected backend: {requested_backend}.")
     elif _contains_any(intent, TRIPOSR_FUSION_KEYWORDS):

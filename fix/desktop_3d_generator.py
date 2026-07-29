@@ -36,6 +36,11 @@ from backend_manager import (
 from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
 from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
+from model_task_context import (
+    ModelTaskContext,
+    build_context_prompt,
+    save_task_context,
+)
 from project_history import append_history, write_error_report
 from config_loader import get_path, get_runtime, get_section
 from conversation_agent import ConversationAgent
@@ -67,6 +72,7 @@ MAX_VISUAL_REPAIR_ATTEMPTS = max(
 conversation_agent = ConversationAgent(
     get_section("conversation_api").get("max_history_messages", 16)
 )
+model_task_context = ModelTaskContext()
 
 LANG = "zh"
 current_result_dir = None
@@ -566,9 +572,14 @@ def generate_3d(
     job_id=None,
     allow_fallback=True,
     requested_backend_override=None,
+    task_context_data=None,
 ):
     global current_result_dir, current_blend, current_obj
     ref_map = ref_map or {}
+    task_context_data = dict(task_context_data or {})
+    task_context_data["main_image"] = str(image_path)
+    task_context_data["reference_images"] = dict(ref_map)
+    intent = build_context_prompt(task_context_data, intent)
 
     image_path = Path(image_path)
     if not image_path.exists():
@@ -583,6 +594,8 @@ def generate_3d(
         update_job(job_id, result_dir=str(result_dir))
         log(f"Task ID: {job_id}")
     current_result_dir = result_dir
+    task_context_path = save_task_context(result_dir, task_context_data)
+    log(f"Unified task context: {task_context_path}")
     set_progress(5, f"Output folder: {result_dir}")
 
     with task_stage("prepare_inputs"):
@@ -610,11 +623,20 @@ def generate_3d(
             intent, image_paths_for_agent, analysis, requested_backend
         )
         analysis["agent_plan"] = plan
+        analysis["model_task_context"] = json.loads(
+            json.dumps(task_context_data, ensure_ascii=False)
+        )
         selected_backend = plan["backend"]
         action_plan = build_action_plan(intent, analysis)
         action_plan_path = save_action_plan(result_dir, action_plan)
         analysis["blender_action_plan"] = action_plan
         analysis_path = save_agent_analysis(result_dir, analysis)
+        task_context_data["visual_analysis"] = {
+            key: value
+            for key, value in analysis.items()
+            if key != "model_task_context"
+        }
+        save_task_context(result_dir, task_context_data)
     log(f"agent_analysis.json: {analysis_path}")
     log(f"blender_action_plan.json: {action_plan_path}")
     analysis_mode = analysis.get("mode", "local_rules")
@@ -650,6 +672,9 @@ def generate_3d(
     backend_details = (
         get_last_backend_details() if actual_backend == BACKEND_CRAFTSMAN else {}
     )
+    routing_reason = ""
+    if plan["backend"] != requested_backend:
+        routing_reason = next(iter(plan.get("reasons") or []), "")
     execution = {
         "requested_backend": requested_backend,
         "planned_backend": plan["backend"],
@@ -657,6 +682,7 @@ def generate_3d(
         "fallback_reason": fallback_reason,
         "fallback_allowed": allow_fallback,
         "backend_details": backend_details,
+        "routing_reason": routing_reason,
     }
     (result_dir / "backend_execution.json").write_text(
         json.dumps(execution, ensure_ascii=False, indent=2),
@@ -673,10 +699,14 @@ def generate_3d(
     status_text = f"请求后端：{requested_backend} | 实际后端：{actual_backend}"
     if fallback_reason:
         status_text += f" | 降级原因：{fallback_reason.splitlines()[0][:180]}"
+    elif routing_reason:
+        status_text += f" | 路由原因：{routing_reason[:180]}"
     root.after(0, lambda text=status_text: backend_status_var.set(text))
     log(f"Actual backend: {actual_backend}")
     if fallback_reason:
         log(f"Fallback reason: {fallback_reason}")
+    elif routing_reason:
+        log(f"Backend routing reason: {routing_reason}")
     if backend_details:
         log(f"Backend engine: {backend_details.get('engine')}")
     if job_id:
@@ -685,6 +715,10 @@ def generate_3d(
             actual_backend=actual_backend,
             fallback_reason=fallback_reason,
         )
+    task_context_data["actual_backend"] = actual_backend
+    task_context_data["fallback_reason"] = fallback_reason
+    task_context_data["routing_reason"] = routing_reason
+    save_task_context(result_dir, task_context_data)
     set_progress(70)
 
     final_blend = result_dir / "result.blend"
@@ -792,13 +826,20 @@ def generate_3d(
     show_info(tr("done"), f"{tr('model_generated')}\n{result_dir}\n\n{tr('files')}")
 
 
-def modify_current_model(intent, source_blend=None, source_obj=None):
+def modify_current_model(
+    intent,
+    source_blend=None,
+    source_obj=None,
+    task_context_data=None,
+):
     global current_blend, current_obj
 
     if source_blend:
         current_blend = Path(source_blend)
     if source_obj:
         current_obj = Path(source_obj)
+    task_context_data = dict(task_context_data or {})
+    intent = build_context_prompt(task_context_data, intent)
 
     if not current_blend or not Path(current_blend).exists():
         raise FileNotFoundError(tr("no_blend"))
@@ -809,13 +850,26 @@ def modify_current_model(intent, source_blend=None, source_obj=None):
         set_active_job(active_job_id, result_dir)
         update_job(active_job_id, result_dir=str(result_dir))
     next_blend = result_dir / f"result_modified_{timestamp}.blend"
-    copied_refs = copy_reference_images(get_reference_map(), result_dir)
+    copied_refs = copy_reference_images(
+        task_context_data.get("reference_images") or get_reference_map(),
+        result_dir,
+    )
+    save_task_context(result_dir, task_context_data)
 
     image_paths_for_agent = {"front": str(result_dir / "input_front.png")}
     image_paths_for_agent.update({view: str(path) for view, path in copied_refs.items()})
     with task_stage("modify_analysis_and_planning"):
         analysis = analyze_request(intent, image_paths_for_agent)
+        analysis["model_task_context"] = json.loads(
+            json.dumps(task_context_data, ensure_ascii=False)
+        )
         analysis_path = save_agent_analysis(result_dir, analysis)
+        task_context_data["visual_analysis"] = {
+            key: value
+            for key, value in analysis.items()
+            if key != "model_task_context"
+        }
+        save_task_context(result_dir, task_context_data)
         blender_intent = build_modeling_intent(intent, analysis, copied_refs)
         action_plan = build_action_plan(intent, analysis)
         save_action_plan(result_dir, action_plan)
@@ -1089,6 +1143,7 @@ def resume_job(job_id):
                     or job.get("requested_backend")
                     or BACKEND_TRIPOSR
                 ),
+                task_context_data=payload.get("task_context") or {},
             )
     elif job["kind"] == "modify":
         def task(current_job_id):
@@ -1096,6 +1151,7 @@ def resume_job(job_id):
                 payload.get("intent", ""),
                 source_blend=payload.get("blend"),
                 source_obj=payload.get("obj"),
+                task_context_data=payload.get("task_context") or {},
             )
     else:
         messagebox.showerror("任务管理", f"不支持恢复的任务类型：{job['kind']}")
@@ -1212,6 +1268,12 @@ def show_task_manager():
 
 
 def _conversation_context():
+    model_task_context.update_inputs(
+        main_image_var.get().strip(),
+        get_reference_map(),
+        backend_var.get(),
+    )
+    task_snapshot = model_task_context.snapshot()
     return {
         "language": "Chinese" if LANG == "zh" else "English",
         "requested_backend": backend_var.get(),
@@ -1226,6 +1288,14 @@ def _conversation_context():
         "active_task_id": active_job_id or "",
         "automatic_fallback_allowed": not disable_fallback_var.get(),
         "image_understanding_mode": vision_mode_var.get(),
+        "model_task_context": {
+            "normalized_request": task_snapshot.get("normalized_request", ""),
+            "design_requirement": task_snapshot.get("design_requirement", {}),
+            "requested_backend": task_snapshot.get("requested_backend", ""),
+            "reference_views": sorted(
+                (task_snapshot.get("reference_images") or {}).keys()
+            ),
+        },
     }
 
 
@@ -1267,7 +1337,19 @@ def show_conversation_window():
             if item.get("role") == "user":
                 append_message("你" if LANG == "zh" else "You", item.get("content", ""), "user")
             else:
-                append_message("智能体" if LANG == "zh" else "Agent", item.get("content", ""), "agent")
+                assistant_content = item.get("content", "")
+                try:
+                    assistant_data = json.loads(assistant_content)
+                    assistant_content = assistant_data.get(
+                        "reply", assistant_content
+                    )
+                except (TypeError, json.JSONDecodeError):
+                    pass
+                append_message(
+                    "智能体" if LANG == "zh" else "Agent",
+                    assistant_content,
+                    "agent",
+                )
     else:
         append_message(
             "智能体" if LANG == "zh" else "Agent",
@@ -1302,6 +1384,12 @@ def show_conversation_window():
             return
         request_box.delete("1.0", tk.END)
         request_box.insert("1.0", normalized)
+        model_task_context.apply_conversation_result(result)
+        model_task_context.update_inputs(
+            main_image_var.get().strip(),
+            get_reference_map(),
+            backend_var.get(),
+        )
         status_var.set("已写入主界面的“自然语言需求”。")
 
     apply_button = tk.Button(
@@ -1314,6 +1402,7 @@ def show_conversation_window():
 
     def reset_chat():
         conversation_agent.reset()
+        model_task_context.reset()
         transcript.config(state="normal")
         transcript.delete("1.0", tk.END)
         transcript.config(state="disabled")
@@ -1405,6 +1494,9 @@ def start_generate():
     image_path = main_image_var.get().strip()
     intent = request_box.get("1.0", tk.END).strip()
     ref_map = get_reference_map()
+    model_task_context.update_inputs(image_path, ref_map, backend_var.get())
+    model_task_context.apply_text_requirement(intent)
+    task_context_data = model_task_context.snapshot()
 
     payload = {
         "image_path": image_path,
@@ -1412,6 +1504,7 @@ def start_generate():
         "ref_map": ref_map,
         "allow_fallback": not disable_fallback_var.get(),
         "requested_backend": backend_var.get(),
+        "task_context": task_context_data,
     }
     job_id = create_job(
         "generate",
@@ -1430,6 +1523,7 @@ def start_generate():
             job_id=current_job_id,
             allow_fallback=payload["allow_fallback"],
             requested_backend_override=payload["requested_backend"],
+            task_context_data=payload["task_context"],
         )
 
     enqueue_persistent_job(job_id, task)
@@ -1441,10 +1535,17 @@ def start_modify():
         messagebox.showerror(tr("error"), tr("need_request"))
         return
 
+    model_task_context.update_inputs(
+        main_image_var.get().strip(),
+        get_reference_map(),
+        backend_var.get(),
+    )
+    model_task_context.apply_text_requirement(intent)
     payload = {
         "intent": intent,
         "blend": str(current_blend or ""),
         "obj": str(current_obj or ""),
+        "task_context": model_task_context.snapshot(),
     }
     job_id = create_job("modify", request_text=intent, payload=payload)
     enqueue_persistent_job(
@@ -1453,6 +1554,7 @@ def start_modify():
             intent,
             source_blend=payload["blend"],
             source_obj=payload["obj"],
+            task_context_data=payload["task_context"],
         ),
     )
 

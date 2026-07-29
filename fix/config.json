@@ -18,6 +18,7 @@
     "default_backend": "TripoSR",
     "craftsman_mode": "remote_only",
     "allow_backend_fallback": true,
+    "auto_promote_triposr_with_references": true,
     "terminate_grace_seconds": 5
   },
   "craftsman_api": {
