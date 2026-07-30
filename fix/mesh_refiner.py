@@ -121,7 +121,7 @@ def write_refinement_report(result_dir, model_files=None):
         [
             "",
             "建议使用顺序：",
-            "1. 先用 TripoSR Fusion 生成多视角融合基础模型。",
+            "1. 使用 TripoSR 时只从主图片生成一个基础模型；参考图交给视觉分析和 Blender 修复。",
             "2. 如果模型破洞、碎片多，优先用 MeshLab 清理和平滑。",
             "3. 如果模型面数乱、后续不好编辑，再用 Instant Meshes 重新拓扑。",
             "4. 如果以后想写更强的自动修复脚本，再接 MeshLib 的 Python 功能。",

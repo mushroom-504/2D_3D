@@ -21,7 +21,6 @@ from backend_manager import (
     BACKEND_CRAFTSMAN,
     BACKEND_EXTERNAL_MULTIVIEW,
     BACKEND_TRIPOSR,
-    BACKEND_TRIPOSR_FUSION,
     TaskCancelledError,
     WORK_ROOT,
     clear_cancel_request,
@@ -30,20 +29,24 @@ from backend_manager import (
     run_craftsman_backend,
     run_external_multiview_backend,
     run_triposr_backend,
-    run_triposr_fusion_backend,
     stop_current_process,
 )
-from blender_executor import run_blender_triposr_fusion, run_blender_with_repair
+from blender_executor import run_blender_with_repair
 from mesh_refiner import write_refinement_report
 from model_checker import check_generation_outputs
 from model_task_context import (
     ModelTaskContext,
+    backend_capability,
     build_context_prompt,
     save_task_context,
 )
 from project_history import append_history, write_error_report
-from config_loader import get_path, get_runtime, get_section
+from config_loader import PROJECT_DIR, get_path, get_runtime, get_section
 from conversation_agent import ConversationAgent
+from llm_blender_agent_client import (
+    BlenderMCPError,
+    run_live_blender_modification,
+)
 from task_manager import (
     clear_active_job,
     create_job,
@@ -62,7 +65,14 @@ from task_manager import (
 from three_view_agent import get_analysis_capability
 
 DESKTOP = get_path("output_root")
+CURRENT_MODEL_FILE = get_path("current_model_file")
 DEFAULT_BACKEND = str(get_runtime("default_backend", BACKEND_TRIPOSR))
+EXTERNAL_MULTIVIEW_ENABLED = bool(
+    get_section("external_multiview").get("enabled", False)
+)
+BACKEND_CHOICES = [BACKEND_CRAFTSMAN, BACKEND_AUTO, BACKEND_TRIPOSR]
+if EXTERNAL_MULTIVIEW_ENABLED:
+    BACKEND_CHOICES.append(BACKEND_EXTERNAL_MULTIVIEW)
 VIEW_KEYS = ["back", "top", "bottom", "left", "right"]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 MAX_VISUAL_REPAIR_ATTEMPTS = max(
@@ -72,6 +82,7 @@ MAX_VISUAL_REPAIR_ATTEMPTS = max(
 conversation_agent = ConversationAgent(
     get_section("conversation_api").get("max_history_messages", 16)
 )
+LLM_BLENDER_AGENT_CONFIG = get_section("llm_blender_agent")
 model_task_context = ModelTaskContext()
 
 LANG = "zh"
@@ -86,6 +97,66 @@ enqueued_job_ids = set()
 job_worker_running = False
 job_worker_lock = threading.Lock()
 last_image_dir = DESKTOP
+
+
+def project_relative_path(path):
+    """Store project-owned paths portably while preserving external paths."""
+    if path is None or str(path).strip() == "":
+        return ""
+    resolved = Path(path).expanduser().resolve()
+    try:
+        return str(resolved.relative_to(PROJECT_DIR.resolve()))
+    except ValueError:
+        return str(resolved)
+
+
+def resolve_project_path(path):
+    """Resolve a path previously stored relative to the project directory."""
+    if path is None or str(path).strip() == "":
+        return None
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute():
+        candidate = PROJECT_DIR / candidate
+    return candidate.resolve()
+
+
+def save_current_model(blend_path, obj_path):
+    """Persist the latest usable model across jobs and application restarts."""
+    blend = Path(blend_path).expanduser().resolve()
+    obj = Path(obj_path).expanduser().resolve() if obj_path else None
+    if not blend.is_file() or blend.stat().st_size == 0:
+        raise FileNotFoundError(f"Cannot save invalid current model: {blend}")
+    CURRENT_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CURRENT_MODEL_FILE.write_text(
+        json.dumps(
+            {
+                "blend": project_relative_path(blend),
+                "obj": project_relative_path(obj),
+                "updated_at": datetime.now().isoformat(timespec="seconds"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def load_current_model():
+    """Load the latest model state, ignoring stale or damaged state files."""
+    if not CURRENT_MODEL_FILE.is_file():
+        return None, None
+    try:
+        data = json.loads(CURRENT_MODEL_FILE.read_text(encoding="utf-8-sig"))
+        blend = resolve_project_path(data.get("blend"))
+        obj = resolve_project_path(data.get("obj"))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return None, None
+    if not blend or not blend.is_file() or blend.stat().st_size == 0:
+        return None, None
+    if obj and not obj.is_file():
+        obj = None
+    return blend, obj
+
 
 TEXT = {
     "zh": {
@@ -389,9 +460,14 @@ def run_backend_with_auto_repair(
         try:
             log(f"Backend attempt {attempt}/{MAX_REPAIR_ATTEMPTS}: {current_backend}")
             if current_backend == BACKEND_CRAFTSMAN:
-                log("CraftsMan is starting with the device configured in config.json.")
+                log(
+                    "CraftsMan: sending the main image, available reference views, "
+                    "and the unified text request in one remote request."
+                )
                 return (
-                    run_craftsman_backend(safe_input, result_dir),
+                    run_craftsman_backend(
+                        image_paths_for_agent, intent, result_dir
+                    ),
                     BACKEND_CRAFTSMAN,
                     fallback_reason,
                 )
@@ -404,20 +480,11 @@ def run_backend_with_auto_repair(
                     fallback_reason,
                 )
 
-            if current_backend == BACKEND_TRIPOSR_FUSION:
-                resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
-                log(f"TripoSR Fusion mc-resolution: {resolution}")
-                return (
-                    run_triposr_fusion_backend(
-                        image_paths_for_agent,
-                        result_dir,
-                        mc_resolution=resolution,
-                    ),
-                    BACKEND_TRIPOSR_FUSION,
-                    fallback_reason,
-                )
-
             resolution = triposr_resolutions[min(attempt - 1, len(triposr_resolutions) - 1)]
+            log(
+                "TripoSR 仅使用主图片生成基础模型；参考图片只用于视觉分析"
+                "和 Blender 修复。"
+            )
             log(f"TripoSR mc-resolution: {resolution}")
             return (
                 run_triposr_backend(
@@ -485,7 +552,11 @@ def run_blender_and_check_with_auto_repair(
             final_obj,
             final_blend,
             current_intent,
-            open_existing=attempt > 1,
+            open_existing=(
+                attempt > 1
+                and final_blend.is_file()
+                and final_blend.stat().st_size > 0
+            ),
             log_callback=log,
             attempt_label=tr("attempt"),
             repair_label=tr("repair"),
@@ -591,7 +662,7 @@ def generate_3d(
     result_dir.mkdir(parents=True, exist_ok=True)
     if job_id:
         set_active_job(job_id, result_dir)
-        update_job(job_id, result_dir=str(result_dir))
+        update_job(job_id, result_dir=project_relative_path(result_dir))
         log(f"Task ID: {job_id}")
     current_result_dir = result_dir
     task_context_path = save_task_context(result_dir, task_context_data)
@@ -701,6 +772,11 @@ def generate_3d(
         status_text += f" | 降级原因：{fallback_reason.splitlines()[0][:180]}"
     elif routing_reason:
         status_text += f" | 路由原因：{routing_reason[:180]}"
+    multiview_warning = str(
+        backend_details.get("multiview_warning") or ""
+    ).strip()
+    if multiview_warning:
+        status_text += " | 多视图状态：服务端未确认"
     root.after(0, lambda text=status_text: backend_status_var.set(text))
     log(f"Actual backend: {actual_backend}")
     if fallback_reason:
@@ -709,6 +785,8 @@ def generate_3d(
         log(f"Backend routing reason: {routing_reason}")
     if backend_details:
         log(f"Backend engine: {backend_details.get('engine')}")
+        if multiview_warning:
+            log(f"CraftsMan multi-view warning: {multiview_warning}")
     if job_id:
         update_job(
             job_id,
@@ -716,6 +794,10 @@ def generate_3d(
             fallback_reason=fallback_reason,
         )
     task_context_data["actual_backend"] = actual_backend
+    task_context_data["generation_mode"] = backend_capability(actual_backend)[
+        "generation_mode"
+    ]
+    task_context_data["backend_capability"] = backend_capability(actual_backend)
     task_context_data["fallback_reason"] = fallback_reason
     task_context_data["routing_reason"] = routing_reason
     save_task_context(result_dir, task_context_data)
@@ -723,56 +805,28 @@ def generate_3d(
 
     final_blend = result_dir / "result.blend"
     blender_intent = build_modeling_intent(intent or tr("default_request"), analysis, copied_refs)
-    if selected_backend == BACKEND_TRIPOSR_FUSION:
-        final_obj = result_dir / "mesh.obj"
-        set_progress(75, "Step 3: TripoSR Fusion mesh alignment and voxel remesh")
-        with task_stage("blender_fusion"):
-            user_code = run_blender_triposr_fusion(
-                obj_path,
-                final_blend,
-                image_paths_for_agent,
-                intent=intent or tr("default_request"),
-                log_callback=log,
-            )
-        fused_obj = result_dir / "fused_mesh.obj"
-        if fused_obj.exists():
-            shutil.copy2(fused_obj, final_obj)
-        with task_stage("structured_blender_actions"):
-            structured_code = run_blender_with_repair(
-                final_obj,
-                final_blend,
-                blender_intent,
-                open_existing=True,
-                log_callback=log,
-                max_script_attempts=1,
-                action_plan=action_plan,
-            )
-            user_code += "\n\n" + structured_code
-        with task_stage("visual_quality_and_validation"):
-            check = check_generation_outputs(result_dir, visual_iteration=1)
-        if not check["ok"]:
-            with task_stage("fusion_visual_repair_loop"):
-                repair_code, check = repair_existing_blend_from_visual_differences(
-                    final_obj,
-                    final_blend,
-                    blender_intent,
-                    result_dir,
-                    check,
-                )
-                if repair_code:
-                    user_code += "\n\n" + repair_code
-    else:
-        final_obj = result_dir / f"mesh{obj_path.suffix.lower()}"
-        shutil.copy2(obj_path, final_obj)
-        set_progress(75, tr("step3"))
-        with task_stage("blender_execute_observe_repair"):
-            user_code, check = run_blender_and_check_with_auto_repair(
-                final_obj,
-                final_blend,
-                blender_intent,
-                result_dir,
-                action_plan,
-            )
+    final_obj = result_dir / f"mesh{obj_path.suffix.lower()}"
+    shutil.copy2(obj_path, final_obj)
+    if actual_backend == BACKEND_CRAFTSMAN:
+        log(f"CraftsMan OBJ 已生成：{final_obj}")
+    log("正在将生成的网格导入 Blender，并保存 result.blend。")
+    set_progress(75, tr("step3"))
+    with task_stage("blender_execute_observe_repair"):
+        user_code, check = run_blender_and_check_with_auto_repair(
+            final_obj,
+            final_blend,
+            blender_intent,
+            result_dir,
+            action_plan,
+        )
+    if not final_blend.is_file() or final_blend.stat().st_size == 0:
+        raise RuntimeError(f"Blender 未生成有效的工程文件：{final_blend}")
+    log(f"Blender 工程已保存：{final_blend}")
+    # Publish the generated model before optional reporting. This guarantees
+    # that a later natural-language edit can always find the valid result.
+    current_blend = final_blend
+    current_obj = final_obj
+    save_current_model(current_blend, current_obj)
     set_progress(95)
     if not check["ok"]:
         log("Model check warnings after auto-repair:")
@@ -803,8 +857,6 @@ def generate_3d(
         encoding="utf-8",
     )
 
-    current_blend = final_blend
-    current_obj = final_obj
     history.append(blender_intent)
     append_history(
         {
@@ -814,10 +866,10 @@ def generate_3d(
             "actual_backend": actual_backend,
             "fallback_reason": fallback_reason,
             "plan": plan,
-            "result_dir": str(result_dir),
-            "blend": str(final_blend),
-            "obj": str(final_obj),
-            "analysis": str(analysis_path),
+            "result_dir": project_relative_path(result_dir),
+            "blend": project_relative_path(final_blend),
+            "obj": project_relative_path(final_obj),
+            "analysis": project_relative_path(analysis_path),
             "check": check,
         }
     )
@@ -831,13 +883,18 @@ def modify_current_model(
     source_blend=None,
     source_obj=None,
     task_context_data=None,
+    use_blender_agent=False,
 ):
     global current_blend, current_obj
 
     if source_blend:
-        current_blend = Path(source_blend)
+        current_blend = resolve_project_path(source_blend)
     if source_obj:
-        current_obj = Path(source_obj)
+        current_obj = resolve_project_path(source_obj)
+    if not current_blend or not Path(current_blend).is_file():
+        saved_blend, saved_obj = load_current_model()
+        current_blend = saved_blend
+        current_obj = saved_obj
     task_context_data = dict(task_context_data or {})
     intent = build_context_prompt(task_context_data, intent)
 
@@ -848,7 +905,7 @@ def modify_current_model(
     result_dir = Path(current_blend).parent
     if active_job_id:
         set_active_job(active_job_id, result_dir)
-        update_job(active_job_id, result_dir=str(result_dir))
+        update_job(active_job_id, result_dir=project_relative_path(result_dir))
     next_blend = result_dir / f"result_modified_{timestamp}.blend"
     copied_refs = copy_reference_images(
         task_context_data.get("reference_images") or get_reference_map(),
@@ -879,28 +936,55 @@ def modify_current_model(
     log(f"agent_analysis.json: {analysis_path}")
     set_progress(40)
 
-    with task_stage("modify_structured_blender_actions"):
-        user_code = run_blender_with_repair(
-            current_obj,
-            next_blend,
-            blender_intent,
-            open_existing=True,
-            log_callback=log,
-            attempt_label=tr("attempt"),
-            repair_label=tr("repair"),
-            action_plan=action_plan,
-        )
+    modification_backend = "Blender background"
+    user_code = None
+    if use_blender_agent:
+        try:
+            with task_stage("modify_llm_blender_agent_live"):
+                user_code = run_live_blender_modification(
+                    current_blend,
+                    next_blend,
+                    blender_intent,
+                    action_plan=action_plan,
+                    log_callback=log,
+                    max_attempts=3,
+                )
+            modification_backend = "LLM Blender Agent"
+            log("\u5b9e\u65f6 Blender Agent \u4fee\u6539\u5b8c\u6210\u3002")
+        except BlenderMCPError as exc:
+            if not bool(
+                LLM_BLENDER_AGENT_CONFIG.get("fallback_to_background", True)
+            ):
+                raise
+            log(
+                "\u5b9e\u65f6 Blender Agent \u4e0d\u53ef\u7528\uff0c"
+                f"\u8f6c\u7528\u540e\u53f0 Blender\uff1a{exc}"
+            )
+
+    if user_code is None:
+        with task_stage("modify_structured_blender_actions"):
+            user_code = run_blender_with_repair(
+                current_obj,
+                next_blend,
+                blender_intent,
+                open_existing=True,
+                log_callback=log,
+                attempt_label=tr("attempt"),
+                repair_label=tr("repair"),
+                action_plan=action_plan,
+            )
     set_progress(90)
 
     current_blend = next_blend
+    save_current_model(current_blend, current_obj)
     history.append(blender_intent)
     append_history(
         {
             "action": "modify",
-            "backend": "Blender",
-            "result_dir": str(result_dir),
-            "blend": str(next_blend),
-            "analysis": str(analysis_path),
+            "backend": modification_backend,
+            "result_dir": project_relative_path(result_dir),
+            "blend": project_relative_path(next_blend),
+            "analysis": project_relative_path(analysis_path),
         }
     )
 
@@ -991,7 +1075,7 @@ def open_thumbnail_picker(target_var):
     quick = tk.Frame(picker)
     quick.pack(fill="x", padx=12, pady=(0, 8))
     for folder in get_quick_image_dirs():
-        label = folder.name if folder != DESKTOP else "桌面"
+        label = folder.name if folder != DESKTOP else "项目输出目录"
         tk.Button(
             quick,
             text=label,
@@ -1152,6 +1236,9 @@ def resume_job(job_id):
                 source_blend=payload.get("blend"),
                 source_obj=payload.get("obj"),
                 task_context_data=payload.get("task_context") or {},
+                use_blender_agent=bool(
+                    payload.get("use_blender_agent", False)
+                ),
             )
     else:
         messagebox.showerror("任务管理", f"不支持恢复的任务类型：{job['kind']}")
@@ -1292,6 +1379,8 @@ def _conversation_context():
             "normalized_request": task_snapshot.get("normalized_request", ""),
             "design_requirement": task_snapshot.get("design_requirement", {}),
             "requested_backend": task_snapshot.get("requested_backend", ""),
+            "generation_mode": task_snapshot.get("generation_mode", ""),
+            "backend_capability": task_snapshot.get("backend_capability", {}),
             "reference_views": sorted(
                 (task_snapshot.get("reference_images") or {}).keys()
             ),
@@ -1494,6 +1583,33 @@ def start_generate():
     image_path = main_image_var.get().strip()
     intent = request_box.get("1.0", tk.END).strip()
     ref_map = get_reference_map()
+    if backend_var.get() == BACKEND_TRIPOSR:
+        reference_views = [
+            view for view, path in ref_map.items() if str(path or "").strip()
+        ]
+        message = (
+            "TripoSR 只使用主图片生成一个基础模型。"
+            "\n参考图片不会送入 TripoSR，但会继续用于视觉分析、"
+            "渲染比较和 Blender 修复。"
+        )
+        if reference_views:
+            message += (
+                "\n\n当前已选择参考视图："
+                + "、".join(reference_views)
+                + "。\n如需生成后端直接使用这些视图，请改选 CraftsMan 远程服务。"
+            )
+        messagebox.showinfo("TripoSR 单视图说明", message)
+    elif backend_var.get() == BACKEND_CRAFTSMAN:
+        reference_views = [
+            view for view, path in ref_map.items() if str(path or "").strip()
+        ]
+        if not reference_views:
+            messagebox.showwarning(
+                "CraftsMan 多视图提示",
+                "当前只选择了主图片，CraftsMan 将按单视图请求运行。\n\n"
+                "建议至少再上传一张背面或侧面参考图，以使用多视图建模。"
+                "\n多视图会在一次远程请求中处理，并且只返回一个模型。",
+            )
     model_task_context.update_inputs(image_path, ref_map, backend_var.get())
     model_task_context.apply_text_requirement(intent)
     task_context_data = model_task_context.snapshot()
@@ -1543,9 +1659,10 @@ def start_modify():
     model_task_context.apply_text_requirement(intent)
     payload = {
         "intent": intent,
-        "blend": str(current_blend or ""),
-        "obj": str(current_obj or ""),
+        "blend": project_relative_path(current_blend),
+        "obj": project_relative_path(current_obj),
         "task_context": model_task_context.snapshot(),
+        "use_blender_agent": bool(blender_agent_var.get()),
     }
     job_id = create_job("modify", request_text=intent, payload=payload)
     enqueue_persistent_job(
@@ -1555,6 +1672,7 @@ def start_modify():
             source_blend=payload["blend"],
             source_obj=payload["obj"],
             task_context_data=payload["task_context"],
+            use_blender_agent=payload["use_blender_agent"],
         ),
     )
 
@@ -1605,6 +1723,9 @@ def apply_language():
     cancel_button.config(text="取消当前任务" if LANG == "zh" else "Cancel Current Task")
     task_manager_button.config(text="任务管理" if LANG == "zh" else "Task Manager")
     chat_button.config(text="与智能体对话" if LANG == "zh" else "Chat with Agent")
+    blender_agent_check.config(
+        text="实时 Blender Agent" if LANG == "zh" else "Live Blender Agent"
+    )
     disable_fallback_check.config(
         text="禁止自动降级" if LANG == "zh" else "Disable automatic fallback"
     )
@@ -1633,22 +1754,21 @@ language_var = tk.StringVar(value=TEXT["zh"]["chinese"])
 progress_var = tk.IntVar(value=0)
 backend_var = tk.StringVar(
     value=DEFAULT_BACKEND
-    if DEFAULT_BACKEND
-    in {
-        BACKEND_CRAFTSMAN,
-        BACKEND_AUTO,
-        BACKEND_TRIPOSR_FUSION,
-        BACKEND_TRIPOSR,
-        BACKEND_EXTERNAL_MULTIVIEW,
-    }
+    if DEFAULT_BACKEND in BACKEND_CHOICES
     else BACKEND_TRIPOSR
 )
 backend_status_var = tk.StringVar(value="后端尚未体检")
+backend_hint_var = tk.StringVar(value="")
 disable_fallback_var = tk.BooleanVar(
     value=not bool(get_runtime("allow_backend_fallback", True))
 )
 backend_status_var.set("后端尚未体检")
 vision_mode_var = tk.StringVar(value=get_analysis_capability()["label"])
+blender_agent_var = tk.BooleanVar(
+    value=bool(
+        LLM_BLENDER_AGENT_CONFIG.get("prefer_live_modification", False)
+    )
+)
 view_labels = {}
 view_choose_buttons = {}
 view_clear_buttons = {}
@@ -1680,11 +1800,37 @@ backend_label.pack(side="left")
 backend_box = ttk.Combobox(
     backend_frame,
     textvariable=backend_var,
-    values=[BACKEND_CRAFTSMAN, BACKEND_AUTO, BACKEND_TRIPOSR_FUSION, BACKEND_TRIPOSR, BACKEND_EXTERNAL_MULTIVIEW],
+    values=BACKEND_CHOICES,
     state="readonly",
     width=24,
 )
 backend_box.pack(side="left", padx=8)
+
+
+def update_backend_capability_hint(event=None):
+    capability = backend_capability(backend_var.get())
+    notice = capability.get("notice") or ""
+    backend_hint_var.set(notice)
+    model_task_context.update_inputs(
+        main_image_var.get().strip(),
+        get_reference_map(),
+        backend_var.get(),
+    )
+    if (
+        event is not None
+        and backend_var.get() == BACKEND_TRIPOSR
+        and any(view_vars[key].get().strip() for key in VIEW_KEYS)
+    ):
+        messagebox.showinfo(
+            "TripoSR 单视图说明",
+            "TripoSR 只使用主图片生成基础模型。\n\n"
+            "已选择的参考图片不会送入 TripoSR，但仍会用于视觉分析、"
+            "差异比较和 Blender 修复。\n\n"
+            "如需让生成后端直接接收多视图，请选择 CraftsMan 远程服务。",
+        )
+
+
+backend_box.bind("<<ComboboxSelected>>", update_backend_capability_hint)
 disable_fallback_check = tk.Checkbutton(
     backend_frame,
     text="禁止自动降级",
@@ -1700,6 +1846,14 @@ health_button.pack(side="left", padx=8)
 tk.Label(backend_frame, textvariable=backend_status_var, anchor="w").pack(
     side="left", fill="x", expand=True, padx=8
 )
+tk.Label(
+    root,
+    textvariable=backend_hint_var,
+    anchor="w",
+    justify="left",
+    fg="#805500",
+).pack(fill="x", padx=16, pady=(0, 8))
+update_backend_capability_hint()
 
 capability_frame = tk.Frame(root)
 capability_frame.pack(fill="x", padx=16, pady=(0, 8))
@@ -1715,6 +1869,12 @@ chat_button = tk.Button(
     width=16,
 )
 chat_button.pack(side="right", padx=(8, 0))
+blender_agent_check = tk.Checkbutton(
+    capability_frame,
+    text="\u5b9e\u65f6 Blender Agent",
+    variable=blender_agent_var,
+)
+blender_agent_check.pack(side="right", padx=(8, 0))
 
 main_image_label = tk.Label(root, text=tr("main_image"))
 main_image_label.pack(anchor="w", padx=16)

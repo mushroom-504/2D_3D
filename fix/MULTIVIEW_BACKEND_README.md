@@ -1,48 +1,28 @@
-# Multi-view backend notes
+# External Multi-View 后端
 
-The desktop tool now has two generation backends:
+该后端是可选实验功能，不影响默认的 TripoSR 和 CraftsMan 远程服务。
 
-1. `TripoSR`
-   - Stable default backend.
-   - Uses only the front image to create the base mesh.
-   - Other views are used by the agent analysis and Blender modification prompt.
+推荐使用下面任一项目相对目录：
 
-2. `External Multi-View`
-   - Adapter for DUSt3R, MASt3R, or another multi-view reconstruction runner.
-   - This project does not install those heavy environments automatically.
-   - Configure it with environment variables:
+```text
+2D_3D/
+├─ MASt3R/
+└─ .venv-mast3r/
+   └─ Scripts/python.exe
+```
+
+程序会自动寻找：
+
+- `MASt3R`
+- `mast3r`
+- `mast3r-main`
+- `.venv-mast3r/Scripts/python.exe`
+
+如果源码或环境放在别处，不需要修改代码，可以设置：
 
 ```powershell
-setx MULTIVIEW_RECON_PYTHON "D:\your_multiview_env\python.exe"
-setx MULTIVIEW_RECON_SCRIPT "C:\path\to\your_multiview_runner.py"
+$env:IMAGE3D_MAST3R_DIR = "你的 MASt3R 源码目录"
+$env:IMAGE3D_MAST3R_PYTHON = "对应环境的 python.exe"
 ```
 
-The external runner should accept:
-
-```text
---output-dir <folder>
---front <image>
---back <image>
---left <image>
---right <image>
---top <image>
---bottom <image>
-```
-
-It should write one of these files:
-
-```text
-mesh.obj
-model.obj
-scene.obj
-```
-
-The desktop tool will then import that OBJ into Blender and export:
-
-```text
-result.blend
-model.glb
-model.fbx
-model.stl
-preview.png
-```
+未安装该可选环境时，后端体检只会把 `External Multi-View` 标记为不可用，不会影响 TripoSR、CraftsMan、对话智能体和 Blender 修复流程。

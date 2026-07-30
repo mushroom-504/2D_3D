@@ -1,25 +1,40 @@
 {
   "paths": {
-    "triposr_python": "D:/conda/envs/triposr/python.exe",
+    "triposr_python": "auto",
     "triposr_dir": "../TripoSR-main",
-    "blender_exe": "C:/Program Files/Blender Foundation/Blender 4.4/blender.exe",
-    "work_root": "C:/TSR_Work",
+    "blender_exe": "auto",
+    "work_root": "../data/work",
     "output_root": "~/Desktop",
-    "mast3r_python": "D:/conda/envs/mast3r/python.exe",
-    "mast3r_dir": "C:/Users/荣/Desktop/mast3r-main/mast3r-main",
+    "mast3r_python": "auto",
+    "mast3r_dir": "auto",
     "multiview_script": "mast3r_multiview_runner.py",
-    "meshlabserver_exe": "",
-    "instant_meshes_exe": "",
-    "history_file": "~/Desktop/3d_agent_history.jsonl",
-    "last_error_file": "~/Desktop/3d_agent_last_error.txt",
-    "task_db": "../data/agent_tasks.sqlite3"
+    "meshlabserver_exe": "auto",
+    "instant_meshes_exe": "auto",
+    "history_file": "../data/3d_agent_history.jsonl",
+    "last_error_file": "../data/3d_agent_last_error.txt",
+    "task_db": "../data/agent_tasks.sqlite3",
+    "current_model_file": "../data/current_model.json"
   },
   "runtime": {
     "default_backend": "TripoSR",
+    "device": "cuda",
     "craftsman_mode": "remote_only",
     "allow_backend_fallback": true,
-    "auto_promote_triposr_with_references": true,
     "terminate_grace_seconds": 5
+  },
+  "external_multiview": {
+    "enabled": false,
+    "experimental": true
+  },
+  "llm_blender_agent": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 9876,
+    "connect_timeout_seconds": 2,
+    "command_timeout_seconds": 120,
+    "prefer_live_modification": false,
+    "fallback_to_background": true,
+    "addon_source": "../LLM-Blender-Agent-main/LLM-Blender-Agent-main/addon.py"
   },
   "craftsman_api": {
     "enabled": true,
@@ -31,7 +46,8 @@
     "guidance_scale": 5.0,
     "octree_depth": 7,
     "remove_background": true,
-    "foreground_ratio": 1.0
+    "foreground_ratio": 1.0,
+    "require_multiview_confirmation": false
   },
   "vision_api": {
     "enabled": true,

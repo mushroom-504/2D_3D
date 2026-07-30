@@ -20,7 +20,6 @@ BACKEND_AUTO = "Auto"
 BACKEND_CRAFTSMAN = "CraftsMan 远程服务"
 BACKEND_TRIPOSR = "TripoSR"
 BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
-BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
 
 DEFAULT_PROCESS_TIMEOUT = get_timeout("default_process")
@@ -29,6 +28,7 @@ MULTIVIEW_TIMEOUT = get_timeout("multiview")
 TERMINATE_GRACE_SECONDS = int(get_runtime("terminate_grace_seconds", 5))
 CRAFTSMAN_API_TIMEOUT = get_timeout("craftsman_api")
 CRAFTSMAN_API_CONFIG = get_section("craftsman_api")
+EXTERNAL_MULTIVIEW_CONFIG = get_section("external_multiview")
 _last_backend_details = {}
 
 
@@ -216,25 +216,43 @@ def run_triposr_backend(safe_input, triposr_output_dir, mc_resolution=384):
     return obj_path
 
 
-def run_craftsman_backend(safe_input, result_dir):
+def run_craftsman_backend(image_paths_for_agent, intent, result_dir):
     global _last_backend_details
+    if isinstance(image_paths_for_agent, (str, os.PathLike)):
+        image_paths_for_agent = {"front": str(image_paths_for_agent)}
+    image_paths_for_agent = {
+        view: Path(path)
+        for view, path in (image_paths_for_agent or {}).items()
+        if view in {"front", "back", "left", "right", "top", "bottom"} and path
+    }
+    front = image_paths_for_agent.get("front")
+    if not front or not front.is_file():
+        raise RuntimeError("CraftsMan 至少需要一张有效的主图片（front）。")
+
     output_dir = Path(result_dir) / "craftsman_output"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_obj = output_dir / "mesh.obj"
     runner = Path(__file__).with_name("craftsman_api_runner.py")
     if not CRAFTSMAN_API_CONFIG.get("enabled", False):
         raise RuntimeError("CraftsMan remote API is disabled in config.json.")
+    command = [
+        TRIPOSR_PYTHON,
+        runner,
+        "--front",
+        front,
+        "--output",
+        output_obj,
+        "--timeout",
+        str(CRAFTSMAN_API_TIMEOUT),
+        "--prompt",
+        str(intent or ""),
+    ]
+    for view in ("back", "left", "right", "top", "bottom"):
+        path = image_paths_for_agent.get(view)
+        if path and path.is_file():
+            command.extend([f"--{view}", path])
     run_command(
-        [
-            TRIPOSR_PYTHON,
-            runner,
-            "--input",
-            safe_input,
-            "--output",
-            output_obj,
-            "--timeout",
-            str(CRAFTSMAN_API_TIMEOUT),
-        ],
+        command,
         cwd=Path(__file__).parent,
         timeout=CRAFTSMAN_API_TIMEOUT + 30,
     )
@@ -254,37 +272,12 @@ def get_last_backend_details():
     return dict(_last_backend_details)
 
 
-def run_triposr_fusion_backend(image_paths_for_agent, result_dir, mc_resolution=384):
-    result_dir = Path(result_dir)
-    fusion_dir = result_dir / "triposr_fusion_meshes"
-    fusion_dir.mkdir(parents=True, exist_ok=True)
-
-    mesh_paths = {}
-    for view in ["front", "back", "left", "right", "top", "bottom"]:
-        raise_if_cancelled()
-        image_path = (image_paths_for_agent or {}).get(view)
-        if not image_path:
-            continue
-        image_path = Path(image_path)
-        if not image_path.exists():
-            continue
-
-        view_output_dir = fusion_dir / f"{view}_triposr_output"
-        obj_path = run_triposr_backend(
-            image_path, view_output_dir, mc_resolution=mc_resolution
-        )
-        copied_obj = fusion_dir / f"{view}_mesh.obj"
-        shutil.copy2(obj_path, copied_obj)
-        mesh_paths[view] = copied_obj
-
-    if "front" not in mesh_paths:
-        raise RuntimeError("TripoSR Fusion needs a front image.")
-    if len(mesh_paths) < 2:
-        raise RuntimeError("TripoSR Fusion needs front plus at least one reference image.")
-    return mesh_paths
-
-
 def run_external_multiview_backend(image_paths_for_agent, result_dir):
+    if not bool(EXTERNAL_MULTIVIEW_CONFIG.get("enabled", False)):
+        raise RuntimeError(
+            "External Multi-View is disabled in config.json. "
+            "This optional experimental backend does not affect TripoSR or CraftsMan."
+        )
     if not MAST3R_PYTHON.is_file():
         raise RuntimeError(f"MASt3R Python environment not found: {MAST3R_PYTHON}")
     if not MULTIVIEW_SCRIPT.is_file():

@@ -10,6 +10,7 @@ from config_loader import get_section
 
 
 MAX_INPUT_BYTES = 10 * 1024 * 1024
+VIEW_ORDER = ("front", "back", "left", "right", "top", "bottom")
 
 
 def _api_config():
@@ -62,24 +63,53 @@ def check_health(timeout=30):
     return _request_json(url, api_key, timeout=timeout)
 
 
-def generate(input_path, output_path, timeout=300):
-    input_path = Path(input_path)
-    output_path = Path(output_path)
-    if not input_path.is_file():
-        raise RuntimeError(f"Input image not found: {input_path}")
-    size = input_path.stat().st_size
+def _encode_image(path, view):
+    path = Path(path)
+    if not path.is_file():
+        raise RuntimeError(f"CraftsMan {view} image not found: {path}")
+    size = path.stat().st_size
     if size <= 0 or size > MAX_INPUT_BYTES:
         raise RuntimeError(
-            f"Input image size must be between 1 byte and 10 MB: {size:,} bytes"
+            f"CraftsMan {view} image size must be between 1 byte and 10 MB: "
+            f"{size:,} bytes"
         )
+    return base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def _multiview_was_used(result, supplied_views):
+    if len(supplied_views) <= 1:
+        return True
+    if result.get("multiview_used") is True:
+        return True
+    accepted = result.get("accepted_views") or result.get("used_views") or []
+    if isinstance(accepted, dict):
+        accepted = [view for view, used in accepted.items() if used]
+    return set(supplied_views).issubset(set(accepted))
+
+
+def generate(image_paths, output_path, prompt="", timeout=300):
+    image_paths = {
+        view: Path(path)
+        for view, path in (image_paths or {}).items()
+        if view in VIEW_ORDER and path
+    }
+    input_path = image_paths.get("front")
+    output_path = Path(output_path)
+    if not input_path:
+        raise RuntimeError("CraftsMan requires a front image.")
 
     config, api_key = _api_config()
     url = str(config.get("generate_url", "")).strip()
     if not url:
         raise RuntimeError("craftsman_api.generate_url is missing in config.json.")
-    image_base64 = base64.b64encode(input_path.read_bytes()).decode("ascii")
+    encoded_views = {
+        view: _encode_image(image_paths[view], view)
+        for view in VIEW_ORDER
+        if view in image_paths
+    }
+    supplied_views = list(encoded_views)
     payload = {
-        "image_base64": image_base64,
+        "image_base64": encoded_views["front"],
         "steps": int(config.get("steps", 50)),
         "seed": int(config.get("seed", 0)),
         "guidance_scale": float(config.get("guidance_scale", 5.0)),
@@ -87,9 +117,28 @@ def generate(input_path, output_path, timeout=300):
         "remove_background": bool(config.get("remove_background", True)),
         "foreground_ratio": float(config.get("foreground_ratio", 1.0)),
     }
+    if len(encoded_views) > 1:
+        payload["images_base64"] = encoded_views
+        payload["view_order"] = supplied_views
+    if str(prompt or "").strip():
+        payload["prompt"] = str(prompt).strip()
+
     result = _request_json(url, api_key, payload=payload, timeout=timeout)
     if not result.get("success"):
         raise RuntimeError(f"CraftsMan API generation failed: {result}")
+    multiview_confirmed = _multiview_was_used(result, supplied_views)
+    multiview_warning = ""
+    if len(supplied_views) > 1 and not multiview_confirmed:
+        multiview_warning = (
+            "远程服务返回了模型，但没有通过 multiview_used 或 "
+            "accepted_views/used_views 确认实际使用了全部参考视图。"
+        )
+        if bool(config.get("require_multiview_confirmation", False)):
+            raise RuntimeError(
+                multiview_warning
+                + " 当前已启用严格多视图确认，请升级服务端响应或在 "
+                "config.json 中关闭 require_multiview_confirmation。"
+            )
     encoded_obj = result.get("obj_base64")
     if not encoded_obj:
         raise RuntimeError("CraftsMan API response does not contain obj_base64.")
@@ -107,6 +156,17 @@ def generate(input_path, output_path, timeout=300):
         "elapsed_seconds": result.get("elapsed_seconds"),
         "format": result.get("format", "obj"),
         "output": str(output_path),
+        "generation_mode": "multi_view" if len(supplied_views) > 1 else "single_view",
+        "supplied_views": supplied_views,
+        "accepted_views": result.get("accepted_views") or result.get("used_views"),
+        "multiview_used": (
+            result.get("multiview_used")
+            if len(supplied_views) > 1
+            else True
+        ),
+        "multiview_confirmed": multiview_confirmed,
+        "multiview_warning": multiview_warning,
+        "prompt_used": bool(str(prompt or "").strip()),
     }
     output_path.with_suffix(".api.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2),
@@ -117,11 +177,29 @@ def generate(input_path, output_path, timeout=300):
 
 def main():
     parser = argparse.ArgumentParser(description="CraftsMan remote API bridge")
-    parser.add_argument("--input", required=True)
+    parser.add_argument("--input", help="Deprecated alias for --front")
+    parser.add_argument("--front")
+    for view in VIEW_ORDER[1:]:
+        parser.add_argument(f"--{view}")
+    parser.add_argument("--prompt", default="")
     parser.add_argument("--output", required=True)
     parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args()
-    metadata = generate(args.input, args.output, timeout=args.timeout)
+    front = args.front or args.input
+    if not front:
+        parser.error("--front is required")
+    image_paths = {
+        view: getattr(args, view)
+        for view in VIEW_ORDER
+        if getattr(args, view, None)
+    }
+    image_paths["front"] = front
+    metadata = generate(
+        image_paths,
+        args.output,
+        prompt=args.prompt,
+        timeout=args.timeout,
+    )
     print(json.dumps(metadata, ensure_ascii=False))
 
 

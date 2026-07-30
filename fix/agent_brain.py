@@ -1,13 +1,19 @@
-from three_view_agent import analyze_three_view_request, build_blender_intent, save_analysis
-from config_loader import get_runtime
+from three_view_agent import (
+    analyze_three_view_request,
+    build_blender_intent,
+    save_analysis,
+)
+from config_loader import get_section
 
 
 BACKEND_AUTO = "Auto"
 BACKEND_CRAFTSMAN = "CraftsMan 远程服务"
 BACKEND_TRIPOSR = "TripoSR"
 BACKEND_TRIPOSR_ENHANCED = "TripoSR Enhanced"
-BACKEND_TRIPOSR_FUSION = "TripoSR Fusion"
 BACKEND_EXTERNAL_MULTIVIEW = "External Multi-View"
+EXTERNAL_MULTIVIEW_ENABLED = bool(
+    get_section("external_multiview").get("enabled", False)
+)
 
 VIEW_ORDER = ["front", "back", "left", "right", "top", "bottom"]
 
@@ -42,7 +48,6 @@ STYLE_IMAGE_KEYWORDS = [
     "娃娃",
     "发饰",
     "q版",
-    "q 版",
     "可爱",
     "cartoon",
     "anime",
@@ -70,27 +75,11 @@ REAL_MULTIVIEW_KEYWORDS = [
 TRIPOSR_ENHANCED_KEYWORDS = [
     "TripoSR Enhanced",
     "triposr enhanced",
-    "TripoSR精度",
-    "TripoSR 精度",
+    "TripoSR 精修",
     "不要扁平",
     "加厚",
     "厚度修正",
     "圆润",
-]
-
-TRIPOSR_FUSION_KEYWORDS = [
-    "TripoSR Fusion",
-    "triposr fusion",
-    "融合",
-    "多模型融合",
-    "多视角融合",
-    "分别生成",
-    "分别参考",
-    "正面背面融合",
-    "正面侧面融合",
-    "front.obj",
-    "back.obj",
-    "side.obj",
 ]
 
 
@@ -99,12 +88,11 @@ def analyze_request(intent, image_paths_for_agent):
 
 
 def _existing_views(image_paths_for_agent):
-    result = []
-    for view in VIEW_ORDER:
-        path = (image_paths_for_agent or {}).get(view)
-        if path:
-            result.append(view)
-    return result
+    return [
+        view
+        for view in VIEW_ORDER
+        if (image_paths_for_agent or {}).get(view)
+    ]
 
 
 def _contains_any(text, keywords):
@@ -112,75 +100,109 @@ def _contains_any(text, keywords):
     return any(keyword.lower() in lower for keyword in keywords)
 
 
-def create_modeling_plan(intent, image_paths_for_agent, analysis=None, requested_backend=BACKEND_AUTO):
+def create_modeling_plan(
+    intent,
+    image_paths_for_agent,
+    analysis=None,
+    requested_backend=BACKEND_AUTO,
+):
     available_views = _existing_views(image_paths_for_agent)
     reference_views = [view for view in available_views if view != "front"]
-    has_dimensions = bool((analysis or {}).get("dimensions")) or _contains_any(intent, DIMENSION_KEYWORDS)
+    has_dimensions = bool((analysis or {}).get("dimensions")) or _contains_any(
+        intent, DIMENSION_KEYWORDS
+    )
     looks_stylized = _contains_any(intent, STYLE_IMAGE_KEYWORDS)
-    explicitly_real_multiview = _contains_any(intent, REAL_MULTIVIEW_KEYWORDS)
-
+    explicitly_real_multiview = _contains_any(
+        intent, REAL_MULTIVIEW_KEYWORDS
+    )
     reasons = []
     warnings = []
 
-    if (
-        requested_backend == BACKEND_TRIPOSR
-        and reference_views
-        and bool(get_runtime("auto_promote_triposr_with_references", True))
-    ):
-        backend = BACKEND_TRIPOSR_FUSION
-        reasons.append(
-            "Reference images are present. Plain TripoSR only consumes the front image, "
-            "so the task was promoted to TripoSR Fusion to generate and align one mesh per view."
-        )
-    elif requested_backend and requested_backend != BACKEND_AUTO:
-        backend = requested_backend
-        reasons.append(f"User selected backend: {requested_backend}.")
-    elif _contains_any(intent, TRIPOSR_FUSION_KEYWORDS):
-        backend = BACKEND_TRIPOSR_FUSION
-        reasons.append("The request asks to run TripoSR on multiple views and fuse the meshes in Blender.")
-    elif len(reference_views) >= 1 and looks_stylized:
-        backend = BACKEND_TRIPOSR_FUSION
-        reasons.append(
-            "Stylized/anime/character references are available, so the agent recommends TripoSR Fusion to use front plus reference meshes."
-        )
-    elif looks_stylized:
-        backend = BACKEND_TRIPOSR_FUSION if len(reference_views) >= 1 else BACKEND_TRIPOSR
-        reasons.append(
-            "Stylized/anime/character requests use TripoSR Fusion when references exist, otherwise TripoSR."
-        )
-    elif len(reference_views) >= 1 and explicitly_real_multiview:
-        backend = BACKEND_EXTERNAL_MULTIVIEW
-        reasons.append("Multiple real-photo views were requested, so the agent recommends the multi-view backend.")
-    else:
-        backend = BACKEND_TRIPOSR
-        if len(reference_views) >= 1:
+    if requested_backend and requested_backend != BACKEND_AUTO:
+        if (
+            requested_backend == BACKEND_EXTERNAL_MULTIVIEW
+            and not EXTERNAL_MULTIVIEW_ENABLED
+        ):
+            backend = BACKEND_CRAFTSMAN if reference_views else BACKEND_TRIPOSR
+            warnings.append(
+                "External Multi-View is disabled. The request was routed to "
+                f"{backend} instead."
+            )
             reasons.append(
-                "Reference views were provided, but the request does not clearly say real-photo multi-view reconstruction, so Auto uses TripoSR to avoid MASt3R fragment artifacts."
+                "The optional MASt3R backend is disabled in config.json."
             )
         else:
-            reasons.append("Only one primary view is available, so the agent recommends TripoSR for the base mesh.")
+            backend = requested_backend
+            reasons.append(f"User selected backend: {requested_backend}.")
+    elif (
+        reference_views
+        and explicitly_real_multiview
+        and EXTERNAL_MULTIVIEW_ENABLED
+    ):
+        backend = BACKEND_EXTERNAL_MULTIVIEW
+        reasons.append(
+            "Multiple real-photo views were requested, so Auto selected the "
+            "external reconstruction backend."
+        )
+    elif reference_views:
+        backend = BACKEND_CRAFTSMAN
+        reasons.append(
+            "Reference views are available, so Auto selected CraftsMan to send "
+            "the main image, reference views, and text in one remote request."
+        )
+        if explicitly_real_multiview and not EXTERNAL_MULTIVIEW_ENABLED:
+            warnings.append(
+                "External Multi-View is disabled, so Auto selected CraftsMan. "
+                "This optional MASt3R backend can be enabled after its source "
+                "and Python environment are installed."
+            )
+    else:
+        backend = BACKEND_TRIPOSR
+        reasons.append(
+            "Only one primary view is available, so Auto selected TripoSR for "
+            "a stable, fast base mesh."
+        )
 
     if "front" not in available_views:
-        warnings.append("No front image is available. Generation may fail because the front image is required.")
-
-    if len(reference_views) == 0:
-        warnings.append("No reference views were uploaded. Back/side/top details will need to be inferred.")
-
+        warnings.append(
+            "No front image is available. Generation requires a main image."
+        )
+    if not reference_views:
+        warnings.append(
+            "No reference views were uploaded. Back/side/top details must be inferred."
+        )
+    if backend == BACKEND_TRIPOSR and reference_views:
+        warnings.append(
+            "TripoSR only uses the main image for base-model generation. "
+            "Reference images are used only by visual analysis and Blender repair."
+        )
+    if backend == BACKEND_CRAFTSMAN and not reference_views:
+        warnings.append(
+            "CraftsMan received only the main image. Add at least one reference "
+            "view to use multi-view request mode."
+        )
     if has_dimensions:
-        reasons.append("Dimension words or extracted dimensions were found, so Blender should preserve typed/measured proportions.")
+        reasons.append(
+            "Dimension words or extracted dimensions were found, so Blender "
+            "should preserve typed/measured proportions."
+        )
 
+    backend_step = (
+        "Run TripoSR with the main image only to create one base mesh."
+        if backend == BACKEND_TRIPOSR
+        else f"Run {backend} once to create one base mesh."
+    )
     steps = [
         "Copy all uploaded images into the result folder and keep their view names.",
-        "Analyze the natural language request and all available views.",
-        f"Run {backend} to create the base model.",
-        "Import or build the model in Blender.",
+        "Analyze the natural-language request and all available views.",
+        backend_step,
+        "Import the single generated mesh into Blender.",
         "Remove black bases, display cylinders, and helper artifacts.",
         "Straighten, center, and ground the model.",
         "Use reference views and the request to correct visible details.",
         "Export result.blend, model.glb, model.fbx, model.stl, and preview.png.",
         "Run model checks after export.",
     ]
-
     quality_checks = [
         "model file exists",
         "model is not empty",
@@ -189,6 +211,7 @@ def create_modeling_plan(intent, image_paths_for_agent, analysis=None, requested
         "Blender can open the file",
         "materials are present when expected",
         "reference views were included in the Blender modification prompt",
+        "no per-view meshes were generated or joined",
     ]
 
     return {

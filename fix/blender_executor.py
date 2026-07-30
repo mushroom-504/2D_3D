@@ -186,10 +186,24 @@ def run_blender_with_repair(
             structured_code=structured_code,
         )
         try:
-            run_command(
+            completed = run_command(
                 [BLENDER_EXE, "--background", "--python", script_path],
                 timeout=BLENDER_TIMEOUT,
+                capture_output=True,
             )
+            blend_file = Path(blend_path)
+            if not blend_file.is_file() or blend_file.stat().st_size == 0:
+                output = "\n".join(
+                    part.strip()
+                    for part in (completed.stdout, completed.stderr)
+                    if part and part.strip()
+                )
+                detail = output[-4000:] if output else "Blender produced no diagnostic output."
+                raise RuntimeError(
+                    "Blender exited without creating a valid project file. "
+                    "Blender may return exit code 0 even when its Python script fails.\n"
+                    f"{detail}"
+                )
             return user_code
         except Exception as e:
             error_message = str(e)
@@ -475,7 +489,20 @@ except Exception as exc:
     return user_code
 
 
-def run_blender_triposr_fusion(mesh_paths, blend_path, image_paths_for_agent, intent="", log_callback=None):
+def _removed_triposr_multi_mesh_backend(
+    mesh_paths,
+    blend_path,
+    image_paths_for_agent,
+    intent="",
+    log_callback=None,
+):
+    raise RuntimeError(
+        "The old TripoSR multi-mesh backend has been removed. "
+        "Use single-view TripoSR or one-request CraftsMan instead."
+    )
+
+    # Kept unreachable only so older packaged bytecode cannot silently call the
+    # unsafe mesh-stacking implementation during an in-place upgrade.
     def log(text):
         if log_callback:
             log_callback(text)
@@ -490,7 +517,7 @@ def run_blender_triposr_fusion(mesh_paths, blend_path, image_paths_for_agent, in
         if path
     }
 
-    user_code = f"""TripoSR Fusion deterministic Blender post-process.
+    user_code = f"""Removed TripoSR multi-mesh post-process.
 - Each available view is first converted by TripoSR.
 - Blender imports front/back/side meshes, aligns them, rotates them by view, voxel-remeshes them into one mesh, then smooths and exports.
 - Meshes: {mesh_paths}
@@ -653,7 +680,7 @@ for view in ["front", "back", "left", "right", "top", "bottom"]:
     all_meshes.extend(imported)
 
 if not all_meshes:
-    raise RuntimeError("No TripoSR Fusion meshes were imported.")
+    raise RuntimeError("No legacy per-view meshes were imported.")
 
 for obj in bpy.context.scene.objects:
     obj.select_set(False)
@@ -821,7 +848,7 @@ except Exception as exc:
         encoding="utf-8",
     )
 
-    log("TripoSR Fusion: running Blender multi-mesh alignment and voxel remesh.")
+    log("Removed backend: multi-mesh alignment is disabled.")
     run_command(
         [BLENDER_EXE, "--background", "--python", script_path],
         timeout=BLENDER_TIMEOUT,

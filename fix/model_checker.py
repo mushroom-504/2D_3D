@@ -71,6 +71,7 @@ result = {{
     "is_tilted": False,
     "has_black_base": False,
     "materials_missing": False,
+    "duplicate_overlap_suspected": False,
     "bounds": None,
     "warnings": [],
 }}
@@ -85,6 +86,7 @@ try:
 
     materials = set()
     corners = []
+    object_bounds = []
     for obj in mesh_objects:
         name = obj.name.lower()
         is_base_like = name.startswith("base") or "pedestal" in name or "display_base" in name
@@ -104,12 +106,60 @@ try:
         if obj_materials == []:
             result["materials_missing"] = True
 
+        own_corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+        if own_corners:
+            own_min = Vector((
+                min(v.x for v in own_corners),
+                min(v.y for v in own_corners),
+                min(v.z for v in own_corners),
+            ))
+            own_max = Vector((
+                max(v.x for v in own_corners),
+                max(v.y for v in own_corners),
+                max(v.z for v in own_corners),
+            ))
+            own_size = own_max - own_min
+            own_volume = max(own_size.x * own_size.y * own_size.z, 0.0)
+            object_bounds.append((obj.name, own_min, own_max, own_volume))
+
         for corner in obj.bound_box:
             if name.endswith("reference_plane") or "reference_plane" in name:
                 continue
             corners.append(obj.matrix_world @ Vector(corner))
 
     result["material_count"] = len(materials)
+
+    per_view_names = (
+        "front_mesh", "back_mesh", "left_mesh", "right_mesh",
+        "top_mesh", "bottom_mesh", "triposr_front", "triposr_back",
+    )
+    if sum(
+        any(token in obj.name.lower() for token in per_view_names)
+        for obj in mesh_objects
+    ) >= 2:
+        result["duplicate_overlap_suspected"] = True
+        result["warnings"].append(
+            "Multiple per-view source meshes were found; this resembles removed "
+            "multi-mesh fusion output."
+        )
+
+    for index, (name_a, min_a, max_a, volume_a) in enumerate(object_bounds):
+        if volume_a <= 0:
+            continue
+        for name_b, min_b, max_b, volume_b in object_bounds[index + 1:]:
+            if volume_b <= 0:
+                continue
+            overlap = Vector((
+                max(0.0, min(max_a.x, max_b.x) - max(min_a.x, min_b.x)),
+                max(0.0, min(max_a.y, max_b.y) - max(min_a.y, min_b.y)),
+                max(0.0, min(max_a.z, max_b.z) - max(min_a.z, min_b.z)),
+            ))
+            overlap_volume = overlap.x * overlap.y * overlap.z
+            if overlap_volume / min(volume_a, volume_b) >= 0.70:
+                result["duplicate_overlap_suspected"] = True
+                result["warnings"].append(
+                    f"Large mesh bounds overlap: {{name_a}} and {{name_b}}."
+                )
 
     if corners:
         min_x = min(v.x for v in corners)

@@ -1,0 +1,12 @@
+anthropic>=0.8.0
+zhipuai>=2.0.0
+openai>=1.1.0
+gradio>=4.0.0
+argparse>=1.4.0
+requests>=2.31.0
+websocket-client>=1.7.0
+tenacity>=8.2.0
+volcengine-python-sdk[ark]>=0.1.0 
+gradio_modal
+modelscope_studio
+sentencepiece   # 混元文生图用
